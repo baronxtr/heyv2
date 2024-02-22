@@ -1,6 +1,11 @@
 import { Errors } from '@hey/data/errors';
 import { toast } from 'react-hot-toast';
 
+/**
+ * Error toast
+ * @param error Error
+ * @returns void
+ */
 const errorToast = (error: any) => {
   if (
     error?.message.includes('viem') ||
@@ -10,7 +15,8 @@ const errorToast = (error: any) => {
   }
 
   toast.error(
-    error?.data?.message ?? error?.message ?? Errors.SomethingWentWrong
+    error?.data?.message || error?.message || Errors.SomethingWentWrong,
+    { id: 'error' }
   );
 };
 

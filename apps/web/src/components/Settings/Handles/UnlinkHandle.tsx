@@ -1,8 +1,12 @@
+import type { UnlinkHandleFromProfileRequest } from '@hey/lens';
+import type { FC } from 'react';
+
 import IndexStatus from '@components/Shared/IndexStatus';
 import { MinusCircleIcon } from '@heroicons/react/24/outline';
 import { TokenHandleRegistry } from '@hey/abis';
+import { Errors } from '@hey/data';
 import { TOKEN_HANDLE_REGISTRY } from '@hey/data/constants';
-import type { UnlinkHandleFromProfileRequest } from '@hey/lens';
+import { SETTINGS } from '@hey/data/tracking';
 import {
   useBroadcastOnchainMutation,
   useCreateUnlinkHandleFromProfileTypedDataMutation,
@@ -12,15 +16,18 @@ import checkDispatcherPermissions from '@hey/lib/checkDispatcherPermissions';
 import getSignature from '@hey/lib/getSignature';
 import { Button, Spinner } from '@hey/ui';
 import errorToast from '@lib/errorToast';
-import { type FC, useState } from 'react';
+import { Leafwatch } from '@lib/leafwatch';
+import { useState } from 'react';
 import toast from 'react-hot-toast';
 import useHandleWrongNetwork from 'src/hooks/useHandleWrongNetwork';
 import { useNonceStore } from 'src/store/non-persisted/useNonceStore';
+import { useProfileRestriction } from 'src/store/non-persisted/useProfileRestriction';
 import useProfileStore from 'src/store/persisted/useProfileStore';
-import { useContractWrite, useSignTypedData } from 'wagmi';
+import { useSignTypedData, useWriteContract } from 'wagmi';
 
 const UnlinkHandle: FC = () => {
   const currentProfile = useProfileStore((state) => state.currentProfile);
+  const { isSuspended } = useProfileRestriction();
   const lensHubOnchainSigNonce = useNonceStore(
     (state) => state.lensHubOnchainSigNonce
   );
@@ -31,11 +38,11 @@ const UnlinkHandle: FC = () => {
   const [unlinking, setUnlinking] = useState<boolean>(false);
 
   const handleWrongNetwork = useHandleWrongNetwork();
-  const { canUseLensManager, canBroadcast } =
+  const { canBroadcast, canUseLensManager } =
     checkDispatcherPermissions(currentProfile);
 
   const onCompleted = (
-    __typename?: 'RelayError' | 'RelaySuccess' | 'LensProfileManagerRelayError'
+    __typename?: 'LensProfileManagerRelayError' | 'RelayError' | 'RelaySuccess'
   ) => {
     if (
       __typename === 'RelayError' ||
@@ -46,11 +53,7 @@ const UnlinkHandle: FC = () => {
 
     setUnlinking(false);
     toast.success('Handle unlinked successfully!');
-    // setHasBlocked(!hasBlocked);
-    // setShowBlockOrUnblockAlert(false, null);
-    // Leafwatch.track(hasBlocked ? PROFILE.BLOCK : PROFILE.UNBLOCK, {
-    //   profile_id: blockingorUnblockingProfile?.id
-    // });
+    Leafwatch.track(SETTINGS.HANDLE.UNLINK);
   };
 
   const onError = (error: any) => {
@@ -58,14 +61,19 @@ const UnlinkHandle: FC = () => {
     errorToast(error);
   };
 
-  const { signTypedDataAsync } = useSignTypedData({ onError });
-  const { write, data: writeData } = useContractWrite({
-    address: TOKEN_HANDLE_REGISTRY,
-    abi: TokenHandleRegistry,
-    functionName: 'unlink',
-    onSuccess: () => onCompleted(),
-    onError
+  const { signTypedDataAsync } = useSignTypedData({ mutation: { onError } });
+  const { data: writeHash, writeContractAsync } = useWriteContract({
+    mutation: { onError, onSuccess: () => onCompleted() }
   });
+
+  const write = async ({ args }: { args: any[] }) => {
+    return await writeContractAsync({
+      abi: TokenHandleRegistry,
+      address: TOKEN_HANDLE_REGISTRY,
+      args,
+      functionName: 'unlink'
+    });
+  };
 
   const [broadcastOnchain, { data: broadcastData }] =
     useBroadcastOnchainMutation({
@@ -77,20 +85,22 @@ const UnlinkHandle: FC = () => {
     useCreateUnlinkHandleFromProfileTypedDataMutation({
       onCompleted: async ({ createUnlinkHandleFromProfileTypedData }) => {
         const { id, typedData } = createUnlinkHandleFromProfileTypedData;
-        const signature = await signTypedDataAsync(getSignature(typedData));
-        setLensHubOnchainSigNonce(lensHubOnchainSigNonce + 1);
+        await handleWrongNetwork();
 
         if (canBroadcast) {
+          const signature = await signTypedDataAsync(getSignature(typedData));
           const { data } = await broadcastOnchain({
             variables: { request: { id, signature } }
           });
           if (data?.broadcastOnchain.__typename === 'RelayError') {
-            return write({ args: [typedData.value] });
+            return await write({ args: [typedData.value] });
           }
+          setLensHubOnchainSigNonce(lensHubOnchainSigNonce + 1);
+
           return;
         }
 
-        return write({ args: [typedData.value] });
+        return await write({ args: [typedData.value] });
       },
       onError
     });
@@ -122,8 +132,8 @@ const UnlinkHandle: FC = () => {
       return;
     }
 
-    if (handleWrongNetwork()) {
-      return;
+    if (isSuspended) {
+      return toast.error(Errors.Suspended);
     }
 
     try {
@@ -153,32 +163,31 @@ const UnlinkHandle: FC = () => {
   const broadcastTxId =
     broadcastData?.broadcastOnchain.__typename === 'RelaySuccess' &&
     broadcastData.broadcastOnchain.txId;
-  const writeHash = writeData?.hash;
 
   return (
     <div>
       {lensManegaerTxId || broadcastTxId || writeHash ? (
         <div className="mt-2">
           <IndexStatus
+            reload
             txHash={writeHash}
             txId={lensManegaerTxId || broadcastTxId}
-            reload
           />
         </div>
       ) : (
         <Button
+          disabled={unlinking}
           icon={
             unlinking ? (
               <Spinner size="xs" />
             ) : (
-              <MinusCircleIcon className="h-4 w-4" />
+              <MinusCircleIcon className="size-4" />
             )
           }
           onClick={unlink}
-          disabled={unlinking}
           outline
         >
-          UnLink
+          Un-link handle
         </Button>
       )}
     </div>

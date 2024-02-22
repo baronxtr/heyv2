@@ -1,20 +1,22 @@
+import type { FC } from 'react';
+
 import Unfollow from '@components/Shared/Profile/Unfollow';
 import {
   CheckBadgeIcon,
   ExclamationCircleIcon
 } from '@heroicons/react/24/solid';
 import { FollowModuleType, type Profile } from '@hey/lens';
+import formatRelativeOrAbsolute from '@hey/lib/datetime/formatRelativeOrAbsolute';
 import getAvatar from '@hey/lib/getAvatar';
+import getLennyURL from '@hey/lib/getLennyURL';
 import getMentions from '@hey/lib/getMentions';
 import getProfile from '@hey/lib/getProfile';
 import hasMisused from '@hey/lib/hasMisused';
 import { Image } from '@hey/ui';
 import cn from '@hey/ui/cn';
-import { getTwitterFormat } from '@lib/formatTime';
 import isVerified from '@lib/isVerified';
 import Link from 'next/link';
-import type { FC } from 'react';
-import { memo, useState } from 'react';
+import { memo } from 'react';
 
 import Markup from './Markup';
 import Follow from './Profile/Follow';
@@ -23,48 +25,42 @@ import SuperFollow from './SuperFollow';
 import UserPreview from './UserPreview';
 
 interface UserProfileProps {
-  profile: Profile;
-  isFollowing?: boolean;
   isBig?: boolean;
   linkToProfile?: boolean;
+  profile: Profile;
   showBio?: boolean;
   showFollow?: boolean;
   showUnfollow?: boolean;
-  showStatus?: boolean;
   showUserPreview?: boolean;
+  source?: string;
   timestamp?: Date;
-
-  // For data analytics
-  followUnfollowPosition?: number;
-  followUnfollowSource?: string;
 }
 
 const UserProfile: FC<UserProfileProps> = ({
-  profile,
-  isFollowing = false,
   isBig = false,
   linkToProfile = true,
+  profile,
   showBio = false,
   showFollow = false,
   showUnfollow = false,
   showUserPreview = true,
-  timestamp = '',
-  followUnfollowPosition,
-  followUnfollowSource
+  source,
+  timestamp = ''
 }) => {
-  const [following, setFollowing] = useState(isFollowing);
-
   const UserAvatar = () => (
     <Image
-      src={getAvatar(profile)}
-      loading="lazy"
+      alt={profile.id}
       className={cn(
-        isBig ? 'h-14 w-14' : 'h-10 w-10',
+        isBig ? 'size-14' : 'size-11',
         'rounded-full border bg-gray-200 dark:border-gray-700'
       )}
-      height={isBig ? 56 : 40}
-      width={isBig ? 56 : 40}
-      alt={profile.id}
+      height={isBig ? 56 : 44}
+      loading="lazy"
+      onError={({ currentTarget }) => {
+        currentTarget.src = getLennyURL(profile.id);
+      }}
+      src={getAvatar(profile)}
+      width={isBig ? 56 : 44}
     />
   );
 
@@ -72,13 +68,15 @@ const UserProfile: FC<UserProfileProps> = ({
     <>
       <div className="flex max-w-sm items-center">
         <div className={cn(isBig ? 'font-bold' : 'text-md', 'grid')}>
-          <div className="truncate">{getProfile(profile).displayName}</div>
+          <div className="truncate font-semibold">
+            {getProfile(profile).displayName}
+          </div>
         </div>
         {isVerified(profile.id) ? (
-          <CheckBadgeIcon className="text-brand-500 ml-1 h-4 w-4" />
+          <CheckBadgeIcon className="text-brand-500 ml-1 size-4" />
         ) : null}
         {hasMisused(profile.id) ? (
-          <ExclamationCircleIcon className="ml-1 h-4 w-4 text-red-500" />
+          <ExclamationCircleIcon className="ml-1 size-4 text-red-500" />
         ) : null}
       </div>
       <div>
@@ -86,7 +84,9 @@ const UserProfile: FC<UserProfileProps> = ({
         {timestamp ? (
           <span className="ld-text-gray-500">
             <span className="mx-1.5">·</span>
-            <span className="text-xs">{getTwitterFormat(timestamp)}</span>
+            <span className="text-xs">
+              {formatRelativeOrAbsolute(timestamp)}
+            </span>
           </span>
         ) : null}
       </div>
@@ -106,13 +106,13 @@ const UserProfile: FC<UserProfileProps> = ({
             <UserName />
             {showBio && profile?.metadata?.bio ? (
               <div
-                // Replace with Tailwind
-                style={{ wordBreak: 'break-word' }}
                 className={cn(
                   isBig ? 'text-base' : 'text-sm',
                   'mt-2',
                   'linkify leading-6'
                 )}
+                // Replace with Tailwind
+                style={{ wordBreak: 'break-word' }}
               >
                 <Markup mentions={getMentions(profile.metadata.bio)}>
                   {profile?.metadata.bio}
@@ -129,8 +129,9 @@ const UserProfile: FC<UserProfileProps> = ({
     <div className="flex items-center justify-between">
       {linkToProfile && profile.id ? (
         <Link
-          href={getProfile(profile).link}
+          as={getProfile(profile).link}
           className="outline-brand-500 rounded-xl outline-offset-4"
+          href={getProfile(profile, source).sourceLink}
         >
           <UserInfo />
         </Link>
@@ -138,31 +139,16 @@ const UserProfile: FC<UserProfileProps> = ({
         <UserInfo />
       )}
       {showFollow ? (
-        following ? null : profile?.followModule?.type ===
-          FollowModuleType.FeeFollowModule ? (
-          <SuperFollow
-            profile={profile}
-            setFollowing={setFollowing}
-            superFollowPosition={followUnfollowPosition}
-            superFollowSource={followUnfollowSource}
-          />
+        profile.operations.isFollowedByMe.value ? null : profile?.followModule
+            ?.type === FollowModuleType.FeeFollowModule ? (
+          <SuperFollow profile={profile} />
         ) : (
-          <Follow
-            profile={profile}
-            setFollowing={setFollowing}
-            followPosition={followUnfollowPosition}
-            followSource={followUnfollowSource}
-          />
+          <Follow profile={profile} />
         )
       ) : null}
       {showUnfollow ? (
-        following ? (
-          <Unfollow
-            profile={profile}
-            setFollowing={setFollowing}
-            unfollowPosition={followUnfollowPosition}
-            unfollowSource={followUnfollowSource}
-          />
+        profile.operations.isFollowedByMe.value ? (
+          <Unfollow profile={profile} />
         ) : null
       ) : null}
     </div>

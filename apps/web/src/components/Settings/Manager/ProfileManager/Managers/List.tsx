@@ -1,10 +1,14 @@
+import type { ProfileManagersRequest } from '@hey/lens';
+import type { FC } from 'react';
+import type { Address } from 'viem';
+
 import Loader from '@components/Shared/Loader';
 import WalletProfile from '@components/Shared/WalletProfile';
 import { MinusCircleIcon, UserCircleIcon } from '@heroicons/react/24/outline';
 import { LensHub } from '@hey/abis';
+import { Errors } from '@hey/data';
 import { LENSHUB_PROXY } from '@hey/data/constants';
 import { SETTINGS } from '@hey/data/tracking';
-import type { ProfileManagersRequest } from '@hey/lens';
 import {
   ChangeProfileManagerActionType,
   useBroadcastOnchainMutation,
@@ -17,17 +21,18 @@ import getSignature from '@hey/lib/getSignature';
 import { Button, EmptyState, ErrorMessage, Spinner } from '@hey/ui';
 import errorToast from '@lib/errorToast';
 import { Leafwatch } from '@lib/leafwatch';
-import { type FC, useState } from 'react';
+import { useState } from 'react';
 import { useInView } from 'react-cool-inview';
 import toast from 'react-hot-toast';
 import useHandleWrongNetwork from 'src/hooks/useHandleWrongNetwork';
 import { useNonceStore } from 'src/store/non-persisted/useNonceStore';
+import { useProfileRestriction } from 'src/store/non-persisted/useProfileRestriction';
 import useProfileStore from 'src/store/persisted/useProfileStore';
-import type { Address } from 'viem';
-import { useContractWrite, useSignTypedData } from 'wagmi';
+import { useSignTypedData, useWriteContract } from 'wagmi';
 
 const List: FC = () => {
   const currentProfile = useProfileStore((state) => state.currentProfile);
+  const { isSuspended } = useProfileRestriction();
   const lensHubOnchainSigNonce = useNonceStore(
     (state) => state.lensHubOnchainSigNonce
   );
@@ -41,7 +46,7 @@ const List: FC = () => {
   const { canBroadcast } = checkDispatcherPermissions(currentProfile);
 
   const onCompleted = (
-    __typename?: 'RelayError' | 'RelaySuccess' | 'LensProfileManagerRelayError'
+    __typename?: 'LensProfileManagerRelayError' | 'RelayError' | 'RelaySuccess'
   ) => {
     if (
       __typename === 'RelayError' ||
@@ -61,18 +66,23 @@ const List: FC = () => {
   };
 
   const request: ProfileManagersRequest = { for: currentProfile?.id };
-  const { data, loading, error, fetchMore } = useProfileManagersQuery({
+  const { data, error, fetchMore, loading } = useProfileManagersQuery({
     variables: { request }
   });
 
-  const { signTypedDataAsync } = useSignTypedData({ onError });
-  const { write } = useContractWrite({
-    address: LENSHUB_PROXY,
-    abi: LensHub,
-    functionName: 'changeDelegatedExecutorsConfig',
-    onSuccess: () => onCompleted(),
-    onError
+  const { signTypedDataAsync } = useSignTypedData({ mutation: { onError } });
+  const { writeContractAsync } = useWriteContract({
+    mutation: { onError, onSuccess: () => onCompleted() }
   });
+
+  const write = async ({ args }: { args: any[] }) => {
+    return await writeContractAsync({
+      abi: LensHub,
+      address: LENSHUB_PROXY,
+      args,
+      functionName: 'changeDelegatedExecutorsConfig'
+    });
+  };
 
   const [broadcastOnchain] = useBroadcastOnchainMutation({
     onCompleted: ({ broadcastOnchain }) =>
@@ -82,13 +92,11 @@ const List: FC = () => {
     useCreateChangeProfileManagersTypedDataMutation({
       onCompleted: async ({ createChangeProfileManagersTypedData }) => {
         const { id, typedData } = createChangeProfileManagersTypedData;
-        const signature = await signTypedDataAsync(getSignature(typedData));
-        setLensHubOnchainSigNonce(lensHubOnchainSigNonce + 1);
         const {
-          delegatorProfileId,
-          delegatedExecutors,
           approvals,
           configNumber,
+          delegatedExecutors,
+          delegatorProfileId,
           switchToGivenConfig
         } = typedData.value;
         const args = [
@@ -98,25 +106,29 @@ const List: FC = () => {
           configNumber,
           switchToGivenConfig
         ];
+        await handleWrongNetwork();
+        setLensHubOnchainSigNonce(lensHubOnchainSigNonce + 1);
 
         if (canBroadcast) {
+          const signature = await signTypedDataAsync(getSignature(typedData));
           const { data } = await broadcastOnchain({
             variables: { request: { id, signature } }
           });
           if (data?.broadcastOnchain.__typename === 'RelayError') {
-            return write({ args });
+            return await write({ args });
           }
+
           return;
         }
 
-        return write({ args });
+        return await write({ args });
       },
       onError
     });
 
   const removeManager = async (address: Address) => {
-    if (handleWrongNetwork()) {
-      return;
+    if (isSuspended) {
+      return toast.error(Errors.Suspended);
     }
 
     try {
@@ -126,7 +138,7 @@ const List: FC = () => {
           options: { overrideSigNonce: lensHubOnchainSigNonce },
           request: {
             changeManagers: [
-              { address, action: ChangeProfileManagerActionType.Remove }
+              { action: ChangeProfileManagerActionType.Remove, address }
             ]
           }
         }
@@ -164,16 +176,16 @@ const List: FC = () => {
 
   if (error) {
     return (
-      <ErrorMessage title="Failed to load profile managers" error={error} />
+      <ErrorMessage error={error} title="Failed to load profile managers" />
     );
   }
 
   if (profileManagers?.length === 0) {
     return (
       <EmptyState
-        message="No profile managers added!"
-        icon={<UserCircleIcon className="text-brand-500 h-8 w-8" />}
         hideCard
+        icon={<UserCircleIcon className="text-brand-500 size-8" />}
+        message="No profile managers added!"
       />
     );
   }
@@ -182,20 +194,20 @@ const List: FC = () => {
     <div className="space-y-4">
       {profileManagers?.map((manager) => (
         <div
-          key={manager.address}
           className="flex items-center justify-between"
+          key={manager.address}
         >
           <WalletProfile address={manager.address} />
           <Button
+            disabled={removingAddress === manager.address}
             icon={
               removingAddress === manager.address ? (
                 <Spinner size="xs" />
               ) : (
-                <MinusCircleIcon className="h-4 w-4" />
+                <MinusCircleIcon className="size-4" />
               )
             }
             onClick={() => removeManager(manager.address)}
-            disabled={removingAddress === manager.address}
             outline
           >
             Remove

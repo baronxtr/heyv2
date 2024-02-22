@@ -1,3 +1,5 @@
+import type { FC } from 'react';
+
 import cn from '@hey/ui/cn';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import {
@@ -7,9 +9,7 @@ import {
   FORMAT_TEXT_COMMAND,
   SELECTION_CHANGE_COMMAND
 } from 'lexical';
-import type { FC } from 'react';
-import { useCallback, useState } from 'react';
-import { useUpdateEffect } from 'usehooks-ts';
+import { useCallback, useEffect, useState } from 'react';
 
 const ToolbarPlugin: FC = () => {
   const [editor] = useLexicalComposerContext();
@@ -27,7 +27,7 @@ const ToolbarPlugin: FC = () => {
     }
   }, []);
 
-  useUpdateEffect(() => {
+  useEffect(() => {
     return editor.registerCommand(
       SELECTION_CHANGE_COMMAND,
       (_payload, newEditor) => {
@@ -43,28 +43,31 @@ const ToolbarPlugin: FC = () => {
     <div className="toolbar-icons divider flex items-center space-x-1 px-5 py-2">
       <button
         className={cn(isBold && 'bg-brand-100', 'outline-brand-500')}
-        title="Bold"
         onClick={() => {
           activeEditor.dispatchCommand(FORMAT_TEXT_COMMAND, 'bold');
         }}
+        title="Bold"
+        type="button"
       >
         <i className="toolbar-icon bold text-brand-500" />
       </button>
       <button
         className={cn(isItalic && 'bg-brand-100', 'outline-brand-500')}
-        title="Italic"
         onClick={() => {
           activeEditor.dispatchCommand(FORMAT_TEXT_COMMAND, 'italic');
         }}
+        title="Italic"
+        type="button"
       >
         <i className="toolbar-icon italic" />
       </button>
       <button
         className={cn(isCode && 'bg-brand-100', 'outline-brand-500')}
-        title="Code"
         onClick={() => {
           activeEditor.dispatchCommand(FORMAT_TEXT_COMMAND, 'code');
         }}
+        title="Code"
+        type="button"
       >
         <i className="toolbar-icon code" />
       </button>

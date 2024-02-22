@@ -1,53 +1,51 @@
+import type { AllowedToken } from '@hey/types/hey';
+import type { FC } from 'react';
+
 import ToggleWithHelper from '@components/Shared/ToggleWithHelper';
 import { CurrencyDollarIcon } from '@heroicons/react/24/outline';
 import { DEFAULT_COLLECT_TOKEN } from '@hey/data/constants';
-import type { Erc20 } from '@hey/lens';
 import { OpenActionModuleType } from '@hey/lens';
-import { Input } from '@hey/ui';
-import { type FC } from 'react';
-import { useCollectModuleStore } from 'src/store/non-persisted/useCollectModuleStore';
+import { Input, Select } from '@hey/ui';
+import { useCollectModuleStore } from 'src/store/non-persisted/publication/useCollectModuleStore';
 
 interface AmountConfigProps {
-  enabledModuleCurrencies?: Erc20[];
+  allowedTokens?: AllowedToken[];
   setCollectType: (data: any) => void;
 }
 
 const AmountConfig: FC<AmountConfigProps> = ({
-  enabledModuleCurrencies,
+  allowedTokens,
   setCollectType
 }) => {
   const collectModule = useCollectModuleStore((state) => state.collectModule);
 
   return (
-    <div className="pt-3">
+    <div>
       <ToggleWithHelper
+        description="Get paid whenever someone collects your post"
+        heading="Charge for collecting"
+        icon={<CurrencyDollarIcon className="size-5" />}
         on={Boolean(collectModule.amount?.value)}
         setOn={() => {
           setCollectType({
+            amount: collectModule.amount?.value
+              ? null
+              : { currency: DEFAULT_COLLECT_TOKEN, value: '1' },
             type: collectModule.amount?.value
               ? OpenActionModuleType.SimpleCollectOpenActionModule
               : collectModule.recipients?.length
                 ? OpenActionModuleType.MultirecipientFeeCollectOpenActionModule
-                : OpenActionModuleType.SimpleCollectOpenActionModule,
-            amount: collectModule.amount?.value
-              ? null
-              : { currency: DEFAULT_COLLECT_TOKEN, value: '1' }
+                : OpenActionModuleType.SimpleCollectOpenActionModule
           });
         }}
-        heading="Charge for collecting"
-        description="Get paid whenever someone collects your post"
-        icon={<CurrencyDollarIcon className="h-4 w-4" />}
       />
       {collectModule.amount?.value ? (
-        <div className="pt-4">
+        <div className="ml-8 mt-4">
           <div className="flex space-x-2 text-sm">
             <Input
               label="Price"
-              type="number"
-              placeholder="0.5"
-              min="0"
               max="100000"
-              value={parseFloat(collectModule.amount.value)}
+              min="0"
               onChange={(event) => {
                 setCollectType({
                   amount: {
@@ -56,11 +54,13 @@ const AmountConfig: FC<AmountConfigProps> = ({
                   }
                 });
               }}
+              placeholder="0.5"
+              type="number"
+              value={parseFloat(collectModule.amount.value)}
             />
-            <div>
+            <div className="w-5/6">
               <div className="label">Select currency</div>
-              <select
-                className="focus:border-brand-500 focus:ring-brand-400 w-full rounded-xl border border-gray-300 bg-white outline-none dark:border-gray-700 dark:bg-gray-800"
+              <Select
                 onChange={(e) => {
                   setCollectType({
                     amount: {
@@ -69,20 +69,11 @@ const AmountConfig: FC<AmountConfigProps> = ({
                     }
                   });
                 }}
-              >
-                {enabledModuleCurrencies?.map((currency: Erc20) => (
-                  <option
-                    key={currency.contract.address}
-                    value={currency.contract.address}
-                    selected={
-                      currency.contract.address ===
-                      collectModule.amount?.currency
-                    }
-                  >
-                    {currency.name}
-                  </option>
-                ))}
-              </select>
+                options={allowedTokens?.map((token) => ({
+                  label: token.name,
+                  value: token.contractAddress
+                }))}
+              />
             </div>
           </div>
         </div>

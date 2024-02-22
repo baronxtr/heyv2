@@ -1,5 +1,7 @@
+import type { FC } from 'react';
+
 import Beta from '@components/Shared/Badges/Beta';
-import SearchUser from '@components/Shared/SearchUser';
+import SearchProfiles from '@components/Shared/SearchProfiles';
 import ToggleWithHelper from '@components/Shared/ToggleWithHelper';
 import {
   ArrowsRightLeftIcon,
@@ -11,8 +13,7 @@ import { ADDRESS_PLACEHOLDER } from '@hey/data/constants';
 import { OpenActionModuleType } from '@hey/lens';
 import splitNumber from '@hey/lib/splitNumber';
 import { Button, Input } from '@hey/ui';
-import { type FC } from 'react';
-import { useCollectModuleStore } from 'src/store/non-persisted/useCollectModuleStore';
+import { useCollectModuleStore } from 'src/store/non-persisted/publication/useCollectModuleStore';
 import useProfileStore from 'src/store/persisted/useProfileStore';
 import { isAddress } from 'viem';
 
@@ -28,8 +29,8 @@ const SplitConfig: FC<SplitConfigProps> = ({
   const currentProfile = useProfileStore((state) => state.currentProfile);
   const collectModule = useCollectModuleStore((state) => state.collectModule);
 
-  const recipients = collectModule.recipients ?? [];
-  const hasRecipients = (recipients ?? []).length > 0;
+  const recipients = collectModule.recipients || [];
+  const hasRecipients = (recipients || []).length > 0;
   const splitTotal = recipients?.reduce((acc, curr) => acc + curr.split, 0);
 
   const splitEvenly = () => {
@@ -70,58 +71,55 @@ const SplitConfig: FC<SplitConfigProps> = ({
   };
 
   return (
-    <div className="pt-5">
+    <div className="mt-5">
       <ToggleWithHelper
-        on={recipients.length > 0}
-        setOn={() => {
-          setCollectType({
-            type:
-              recipients.length > 0
-                ? OpenActionModuleType.SimpleCollectOpenActionModule
-                : OpenActionModuleType.MultirecipientFeeCollectOpenActionModule,
-            recipients:
-              recipients.length > 0
-                ? []
-                : [{ recipient: currentProfile?.ownedBy.address, split: 100 }]
-          });
-        }}
+        description="Set multiple recipients for the collect fee"
         heading={
           <div className="flex items-center space-x-2">
             <span>Split revenue</span>
             <Beta />
           </div>
         }
-        description="Set multiple recipients for the collect fee"
-        icon={<UsersIcon className="h-4 w-4" />}
+        icon={<UsersIcon className="size-5" />}
+        on={recipients.length > 0}
+        setOn={() => {
+          setCollectType({
+            recipients:
+              recipients.length > 0
+                ? []
+                : [{ recipient: currentProfile?.ownedBy.address, split: 100 }],
+            type:
+              recipients.length > 0
+                ? OpenActionModuleType.SimpleCollectOpenActionModule
+                : OpenActionModuleType.MultirecipientFeeCollectOpenActionModule
+          });
+        }}
       />
       {hasRecipients ? (
-        <div className="space-y-3 pt-4">
+        <div className="ml-8 mt-4 space-y-3">
           <div className="space-y-2">
             {recipients.map((recipient, index) => (
-              <div key={index} className="flex items-center space-x-2 text-sm">
-                <SearchUser
-                  placeholder={`${ADDRESS_PLACEHOLDER} or wagmi`}
-                  value={recipient.recipient}
+              <div className="flex items-center space-x-2 text-sm" key={index}>
+                <SearchProfiles
+                  error={
+                    recipient.recipient.length > 0 &&
+                    !isAddress(recipient.recipient)
+                  }
+                  hideDropdown={isAddress(recipient.recipient)}
                   onChange={(event) =>
                     updateRecipient(index, event.target.value)
                   }
                   onProfileSelected={(profile) =>
                     updateRecipient(index, profile.ownedBy.address)
                   }
-                  hideDropdown={isAddress(recipient.recipient)}
-                  error={
-                    recipient.recipient.length > 0 &&
-                    !isAddress(recipient.recipient)
-                  }
+                  placeholder={`${ADDRESS_PLACEHOLDER} or wagmi`}
+                  value={recipient.recipient}
                 />
                 <div className="w-1/3">
                   <Input
-                    type="number"
-                    placeholder="5"
-                    min="1"
-                    max="100"
-                    value={recipient.split}
                     iconRight="%"
+                    max="100"
+                    min="1"
                     onChange={(event) =>
                       onChangeRecipientOrSplit(
                         index,
@@ -129,6 +127,9 @@ const SplitConfig: FC<SplitConfigProps> = ({
                         'split'
                       )
                     }
+                    placeholder="5"
+                    type="number"
+                    value={recipient.split}
                   />
                 </div>
                 <button
@@ -137,8 +138,9 @@ const SplitConfig: FC<SplitConfigProps> = ({
                       recipients: recipients.filter((_, i) => i !== index)
                     });
                   }}
+                  type="button"
                 >
-                  <XCircleIcon className="h-5 w-5 text-red-500" />
+                  <XCircleIcon className="size-5 text-red-500" />
                 </button>
               </div>
             ))}
@@ -148,23 +150,23 @@ const SplitConfig: FC<SplitConfigProps> = ({
               <div />
             ) : (
               <Button
-                size="sm"
-                outline
-                icon={<PlusIcon className="h-3 w-3" />}
+                icon={<PlusIcon className="size-3" />}
                 onClick={() => {
                   setCollectType({
                     recipients: [...recipients, { recipient: '', split: 0 }]
                   });
                 }}
+                outline
+                size="sm"
               >
                 Add recipient
               </Button>
             )}
             <Button
-              size="sm"
-              outline
-              icon={<ArrowsRightLeftIcon className="h-3 w-3" />}
+              icon={<ArrowsRightLeftIcon className="size-3" />}
               onClick={splitEvenly}
+              outline
+              size="sm"
             >
               Split evenly
             </Button>

@@ -1,3 +1,5 @@
+import type { ChangeEvent, FC, MutableRefObject } from 'react';
+
 import MenuTransition from '@components/Shared/MenuTransition';
 import { Menu } from '@headlessui/react';
 import {
@@ -11,13 +13,12 @@ import {
   MediaAudioMimeType,
   MediaImageMimeType
 } from '@lens-protocol/metadata';
+import { useClickAway } from '@uidotdev/usehooks';
 import { motion } from 'framer-motion';
-import type { ChangeEvent, FC } from 'react';
-import { useId, useRef, useState } from 'react';
+import { useId, useState } from 'react';
 import toast from 'react-hot-toast';
 import useUploadAttachments from 'src/hooks/useUploadAttachments';
-import { usePublicationStore } from 'src/store/non-persisted/usePublicationStore';
-import { useOnClickOutside } from 'usehooks-ts';
+import { usePublicationAttachmentStore } from 'src/store/non-persisted/publication/usePublicationAttachmentStore';
 
 const ImageMimeType = Object.values(MediaImageMimeType);
 const AudioMimeType = Object.values(MediaAudioMimeType);
@@ -30,14 +31,18 @@ const VideoMimeType = [
 ];
 
 const Attachment: FC = () => {
-  const attachments = usePublicationStore((state) => state.attachments);
-  const isUploading = usePublicationStore((state) => state.isUploading);
+  const attachments = usePublicationAttachmentStore(
+    (state) => state.attachments
+  );
+  const isUploading = usePublicationAttachmentStore(
+    (state) => state.isUploading
+  );
   const { handleUploadAttachments } = useUploadAttachments();
   const [showMenu, setShowMenu] = useState(false);
   const id = useId();
-  const dropdownRef = useRef(null);
-
-  useOnClickOutside(dropdownRef, () => setShowMenu(false));
+  const dropdownRef = useClickAway(() => {
+    setShowMenu(false);
+  }) as MutableRefObject<HTMLDivElement>;
 
   const isTypeAllowed = (files: FileList) => {
     const allowedTypes = [
@@ -58,9 +63,9 @@ const Attachment: FC = () => {
   const isUploadAllowed = (files: FileList) => {
     if (files[0]?.type.slice(0, 5) === 'image') {
       return attachments.length + files.length <= 4;
-    } else {
-      return files.length === 1;
     }
+
+    return files.length === 1;
   };
 
   const disableImageUpload = () => {
@@ -93,73 +98,72 @@ const Attachment: FC = () => {
   return (
     <Menu as="div">
       <Menu.Button
+        aria-label="More"
         as={motion.button}
         className="outline-brand-500 rounded-full outline-offset-8"
-        whileTap={{ scale: 0.9 }}
         onClick={() => setShowMenu(!showMenu)}
-        aria-label="More"
+        whileTap={{ scale: 0.9 }}
       >
         {isUploading ? (
           <Spinner size="sm" />
         ) : (
-          <Tooltip placement="top" content="Media">
-            <PhotoIcon className="text-brand-500 h-5 w-5" />
+          <Tooltip content="Media" placement="top">
+            <PhotoIcon className="text-brand-500 size-5" />
           </Tooltip>
         )}
       </Menu.Button>
       <MenuTransition show={showMenu}>
         <Menu.Items
-          ref={dropdownRef}
           className="absolute z-[5] mt-2 rounded-xl border bg-white py-1 shadow-sm focus:outline-none dark:border-gray-700 dark:bg-gray-900"
+          ref={dropdownRef}
           static
         >
           <Menu.Item
             as="label"
-            disabled={disableImageUpload()}
             className={({ active }) =>
               cn(
                 { 'dropdown-active': active },
                 'menu-item !flex cursor-pointer items-center gap-1 space-x-1 rounded-lg'
               )
             }
+            disabled={disableImageUpload()}
             htmlFor={`image_${id}`}
           >
-            <PhotoIcon className="text-brand-500 h-4 w-4" />
+            <PhotoIcon className="text-brand-500 size-4" />
             <span className="text-sm">Upload image(s)</span>
             <input
-              id={`image_${id}`}
-              type="file"
-              multiple
               accept={ImageMimeType.join(',')}
               className="hidden"
-              onChange={handleAttachment}
               disabled={disableImageUpload()}
+              id={`image_${id}`}
+              multiple
+              onChange={handleAttachment}
+              type="file"
             />
           </Menu.Item>
           <Menu.Item
             as="label"
-            disabled={Boolean(attachments.length)}
             className={({ active }) =>
               cn(
                 { 'dropdown-active': active },
                 'menu-item !flex cursor-pointer items-center gap-1 space-x-1 rounded-lg'
               )
             }
+            disabled={Boolean(attachments.length)}
             htmlFor={`video_${id}`}
           >
-            <VideoCameraIcon className="text-brand-500 h-4 w-4" />
+            <VideoCameraIcon className="text-brand-500 size-4" />
             <span className="text-sm">Upload video</span>
             <input
-              id={`video_${id}`}
-              type="file"
               accept={VideoMimeType.join(',')}
               className="hidden"
-              onChange={handleAttachment}
               disabled={Boolean(attachments.length)}
+              id={`video_${id}`}
+              onChange={handleAttachment}
+              type="file"
             />
           </Menu.Item>
           <Menu.Item
-            disabled={Boolean(attachments.length)}
             as="label"
             className={({ active }) =>
               cn(
@@ -167,17 +171,18 @@ const Attachment: FC = () => {
                 'menu-item !flex cursor-pointer items-center gap-1 space-x-1 rounded-lg'
               )
             }
+            disabled={Boolean(attachments.length)}
             htmlFor={`audio_${id}`}
           >
-            <MusicalNoteIcon className="text-brand-500 h-4 w-4" />
+            <MusicalNoteIcon className="text-brand-500 size-4" />
             <span className="text-sm">Upload audio</span>
             <input
-              id={`audio_${id}`}
-              type="file"
               accept={AudioMimeType.join(',')}
               className="hidden"
-              onChange={handleAttachment}
               disabled={Boolean(attachments.length)}
+              id={`audio_${id}`}
+              onChange={handleAttachment}
+              type="file"
             />
           </Menu.Item>
         </Menu.Items>

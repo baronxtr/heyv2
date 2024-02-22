@@ -1,7 +1,10 @@
+import type { FC } from 'react';
+
 import { PencilSquareIcon } from '@heroicons/react/24/outline';
 import { CheckCircleIcon } from '@heroicons/react/24/solid';
-import { PAGEVIEW, PUBLICATION } from '@hey/data/tracking';
-import type { AnyPublication } from '@hey/lens';
+import { Errors } from '@hey/data';
+import { HEY_API_URL } from '@hey/data/constants';
+import { PUBLICATION } from '@hey/data/tracking';
 import { useReportPublicationMutation } from '@hey/lens';
 import stopEventPropagation from '@hey/lib/stopEventPropagation';
 import {
@@ -13,10 +16,13 @@ import {
   TextArea,
   useZodForm
 } from '@hey/ui';
+import errorToast from '@lib/errorToast';
+import getAuthApiHeaders from '@lib/getAuthApiHeaders';
 import { Leafwatch } from '@lib/leafwatch';
-import type { FC } from 'react';
+import axios from 'axios';
 import { useState } from 'react';
-import { useEffectOnce } from 'usehooks-ts';
+import toast from 'react-hot-toast';
+import { useProfileRestriction } from 'src/store/non-persisted/useProfileRestriction';
 import { object, string } from 'zod';
 
 import Reason from './Reason';
@@ -28,74 +34,88 @@ const newReportPublicationSchema = object({
 });
 
 interface ReportProps {
-  publication: AnyPublication | null;
+  publicationId: null | string;
 }
 
-const ReportPublication: FC<ReportProps> = ({ publication }) => {
+const ReportPublication: FC<ReportProps> = ({ publicationId }) => {
+  const { isSuspended } = useProfileRestriction();
   const [type, setType] = useState('');
   const [subReason, setSubReason] = useState('');
-
-  useEffectOnce(() => {
-    Leafwatch.track(PAGEVIEW, { page: 'report' });
-  });
-
-  const [
-    createReport,
-    { data: submitData, loading: submitLoading, error: submitError }
-  ] = useReportPublicationMutation({
-    onCompleted: () => {
-      Leafwatch.track(PUBLICATION.REPORT, {
-        report_publication_id: publication?.id
-      });
-    }
-  });
 
   const form = useZodForm({
     schema: newReportPublicationSchema
   });
 
-  const reportPublication = (additionalComments: string | null) => {
-    createReport({
-      variables: {
-        request: {
-          for: publication?.id,
-          reason: {
-            [type]: {
-              reason: type.replace('Reason', '').toUpperCase(),
-              subreason: subReason
+  const [
+    createReport,
+    { data: submitData, error: submitError, loading: submitLoading }
+  ] = useReportPublicationMutation({
+    onCompleted: () => {
+      Leafwatch.track(PUBLICATION.REPORT, {
+        publication_id: publicationId
+      });
+    }
+  });
+
+  const reportPublicationOnHey = async (reason: string) => {
+    await axios.post(
+      `${HEY_API_URL}/misc/report`,
+      { id: publicationId, reason },
+      { headers: getAuthApiHeaders() }
+    );
+  };
+
+  const reportPublication = async (additionalComments: null | string) => {
+    if (isSuspended) {
+      return toast.error(Errors.Suspended);
+    }
+
+    try {
+      reportPublicationOnHey(subReason);
+      return await createReport({
+        variables: {
+          request: {
+            additionalComments,
+            for: publicationId,
+            reason: {
+              [type]: {
+                reason: type.replace('Reason', '').toUpperCase(),
+                subreason: subReason
+              }
             }
-          },
-          additionalComments
+          }
         }
-      }
-    });
+      });
+    } catch (error) {
+      errorToast(error);
+    }
   };
 
   return (
     <div onClick={stopEventPropagation}>
       {submitData?.reportPublication === null ? (
         <EmptyState
-          message="Publication reported successfully!"
-          icon={<CheckCircleIcon className="h-14 w-14 text-green-500" />}
           hideCard
+          icon={<CheckCircleIcon className="size-14 text-green-500" />}
+          message="Publication reported successfully!"
         />
-      ) : publication ? (
+      ) : publicationId ? (
         <div className="p-5">
           <Form
-            form={form}
             className="space-y-4"
+            form={form}
             onSubmit={({ additionalComments }) =>
               reportPublication(additionalComments)
             }
           >
             {submitError ? (
-              <ErrorMessage title="Failed to report" error={submitError} />
+              <ErrorMessage error={submitError} title="Failed to report" />
             ) : null}
             <Reason
-              setType={setType}
               setSubReason={setSubReason}
-              type={type}
+              setType={setType}
               subReason={subReason}
+              type={type}
             />
             {subReason ? (
               <>
@@ -106,15 +126,15 @@ const ReportPublication: FC<ReportProps> = ({ publication }) => {
                 />
                 <Button
                   className="flex w-full justify-center"
-                  type="submit"
                   disabled={submitLoading}
                   icon={
                     submitLoading ? (
                       <Spinner size="xs" />
                     ) : (
-                      <PencilSquareIcon className="h-4 w-4" />
+                      <PencilSquareIcon className="size-4" />
                     )
                   }
+                  type="submit"
                 >
                   Report
                 </Button>

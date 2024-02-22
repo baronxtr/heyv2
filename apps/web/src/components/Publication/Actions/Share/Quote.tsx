@@ -1,11 +1,16 @@
+import type { AnyPublication } from '@hey/lens';
+import type { FC } from 'react';
+
 import { Menu } from '@headlessui/react';
 import { ChatBubbleBottomCenterTextIcon } from '@heroicons/react/24/outline';
-import { type AnyPublication, TriStateValue } from '@hey/lens';
+import { Errors } from '@hey/data';
+import { TriStateValue } from '@hey/lens';
 import { isMirrorPublication } from '@hey/lib/publicationHelpers';
 import cn from '@hey/ui/cn';
-import { type FC } from 'react';
+import toast from 'react-hot-toast';
+import { usePublicationStore } from 'src/store/non-persisted/publication/usePublicationStore';
 import { useGlobalModalStateStore } from 'src/store/non-persisted/useGlobalModalStateStore';
-import { usePublicationStore } from 'src/store/non-persisted/usePublicationStore';
+import { useProfileRestriction } from 'src/store/non-persisted/useProfileRestriction';
 
 interface QuoteProps {
   publication: AnyPublication;
@@ -23,6 +28,7 @@ const Quote: FC<QuoteProps> = ({ publication }) => {
   const setQuotedPublication = usePublicationStore(
     (state) => state.setQuotedPublication
   );
+  const { isSuspended } = useProfileRestriction();
 
   if (targetPublication.operations.canQuote === TriStateValue.No) {
     return null;
@@ -38,12 +44,16 @@ const Quote: FC<QuoteProps> = ({ publication }) => {
         )
       }
       onClick={() => {
+        if (isSuspended) {
+          return toast.error(Errors.Suspended);
+        }
+
         setQuotedPublication(publication);
         setShowNewPostModal(true);
       }}
     >
       <div className="flex items-center space-x-2">
-        <ChatBubbleBottomCenterTextIcon className="h-4 w-4" />
+        <ChatBubbleBottomCenterTextIcon className="size-4" />
         <div>
           {publicationType === 'Comment' ? 'Quote comment' : 'Quote post'}
         </div>

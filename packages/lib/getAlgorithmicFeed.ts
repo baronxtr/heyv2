@@ -1,5 +1,6 @@
-import { AlgorithmProvider, HomeFeedType } from '@hey/data/enums';
 import type { Profile } from '@hey/lens';
+
+import { AlgorithmProvider, HomeFeedType } from '@hey/data/enums';
 
 import getPublicationIds from './getPublicationIds';
 
@@ -11,37 +12,37 @@ import getPublicationIds from './getPublicationIds';
  */
 const getAlgorithmicFeed = async (
   feedType: HomeFeedType,
-  profile: Profile | null,
-  limit: number | null,
-  offset: number | null
+  profile: null | Profile,
+  limit: null | number,
+  offset: null | number
 ) => {
   switch (feedType) {
     case HomeFeedType.K3L_RECOMMENDED:
     case HomeFeedType.K3L_POPULAR:
     case HomeFeedType.K3L_RECENT:
     case HomeFeedType.K3L_CROWDSOURCED:
-      return getPublicationIds(
+      return await getPublicationIds(
         AlgorithmProvider.K3L,
         feedType.replace('K3L_', '').toLowerCase(),
         limit,
         offset
-      ).then((data) => data);
+      );
     case HomeFeedType.K3L_FOLLOWING:
-      return getPublicationIds(
+      return await getPublicationIds(
         AlgorithmProvider.K3L,
         feedType.replace('K3L_', '').toLowerCase(),
         limit,
         offset,
         profile?.handle?.fullHandle
-      ).then((data) => data);
+      );
     case HomeFeedType.HEY_MOSTVIEWED:
     case HomeFeedType.HEY_MOSTINTERACTED:
-      return getPublicationIds(
+      return await getPublicationIds(
         AlgorithmProvider.HEY,
         feedType.replace('HEY_', '').toLowerCase(),
         limit,
         offset
-      ).then((data) => data);
+      );
     default:
       return [];
   }

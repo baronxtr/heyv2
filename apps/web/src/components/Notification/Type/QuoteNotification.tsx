@@ -1,17 +1,17 @@
+import type { QuoteNotification as TQuoteNotification } from '@hey/lens';
+
 import Markup from '@components/Shared/Markup';
 import { ChatBubbleBottomCenterTextIcon } from '@heroicons/react/24/outline';
-import { QuoteNotification } from '@hey/lens';
 import getPublicationData from '@hey/lib/getPublicationData';
 import pushToImpressions from '@lib/pushToImpressions';
 import Link from 'next/link';
-import type { FC } from 'react';
-import { useEffectOnce } from 'usehooks-ts';
+import { type FC, useEffect } from 'react';
 
 import AggregatedNotificationTitle from '../AggregatedNotificationTitle';
 import { NotificationProfileAvatar } from '../Profile';
 
 interface QuoteNotificationProps {
-  notification: QuoteNotification;
+  notification: TQuoteNotification;
 }
 
 const QuoteNotification: FC<QuoteNotificationProps> = ({ notification }) => {
@@ -22,14 +22,15 @@ const QuoteNotification: FC<QuoteNotificationProps> = ({ notification }) => {
   const text = 'quoted your';
   const type = notification.quote.quoteOn.__typename;
 
-  useEffectOnce(() => {
+  useEffect(() => {
     pushToImpressions(notification.quote.id);
-  });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="space-y-2">
       <div className="flex items-center space-x-3">
-        <ChatBubbleBottomCenterTextIcon className="text-brand-500/70 h-6 w-6" />
+        <ChatBubbleBottomCenterTextIcon className="text-brand-500/70 size-6" />
         <div className="flex items-center space-x-1">
           <NotificationProfileAvatar profile={firstProfile} />
         </div>
@@ -37,13 +38,13 @@ const QuoteNotification: FC<QuoteNotificationProps> = ({ notification }) => {
       <div className="ml-9">
         <AggregatedNotificationTitle
           firstProfile={firstProfile}
+          linkToType={`/posts/${notification?.quote?.id}`}
           text={text}
           type={type}
-          linkToType={`/posts/${notification?.quote?.id}`}
         />
         <Link
-          href={`/posts/${notification?.quote?.id}`}
           className="ld-text-gray-500 linkify mt-2 line-clamp-2"
+          href={`/posts/${notification?.quote?.id}`}
         >
           <Markup mentions={notification.quote.profilesMentioned}>
             {filteredContent}

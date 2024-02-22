@@ -1,65 +1,36 @@
-import MetaTags from '@components/Common/MetaTags';
-import Loader from '@components/Shared/Loader';
-import NotLoggedIn from '@components/Shared/NotLoggedIn';
-import { APP_NAME, DEFAULT_COLLECT_TOKEN } from '@hey/data/constants';
-import { PAGEVIEW } from '@hey/data/tracking';
-import type { Erc20 } from '@hey/lens';
-import {
-  FollowModuleType,
-  LimitType,
-  OpenActionModuleType,
-  useApprovedModuleAllowanceAmountQuery,
-  useEnabledCurrenciesQuery
-} from '@hey/lens';
-import { Card, GridItemEight, GridItemFour, GridLayout } from '@hey/ui';
-import { Leafwatch } from '@lib/leafwatch';
 import type { NextPage } from 'next';
-import { useState } from 'react';
-import Custom500 from 'src/pages/500';
+
+import MetaTags from '@components/Common/MetaTags';
+import NotLoggedIn from '@components/Shared/NotLoggedIn';
+import { APP_NAME } from '@hey/data/constants';
+import { PAGEVIEW } from '@hey/data/tracking';
+import {
+  Card,
+  GridItemEight,
+  GridItemFour,
+  GridLayout,
+  TabButton
+} from '@hey/ui';
+import { Leafwatch } from '@lib/leafwatch';
+import { useEffect, useState } from 'react';
 import useProfileStore from 'src/store/persisted/useProfileStore';
-import { useEffectOnce } from 'usehooks-ts';
 
 import SettingsSidebar from '../Sidebar';
-import Allowance from './Allowance';
+import CollectModules from './CollectModules';
+import OpenActions from './OpenActions';
 
-const getAllowancePayload = (currency: string) => {
-  return {
-    currencies: [currency],
-    openActionModules: [
-      OpenActionModuleType.SimpleCollectOpenActionModule,
-      OpenActionModuleType.MultirecipientFeeCollectOpenActionModule,
-      OpenActionModuleType.LegacySimpleCollectModule,
-      OpenActionModuleType.LegacyMultirecipientFeeCollectModule
-    ],
-    followModules: [FollowModuleType.FeeFollowModule]
-  };
-};
+enum Type {
+  COLLECT_MODULES = 'COLLECT_MODULES',
+  OPEN_ACTIONS = 'OPEN_ACTIONS'
+}
 
 const AllowanceSettings: NextPage = () => {
   const currentProfile = useProfileStore((state) => state.currentProfile);
-  const [currencyLoading, setCurrencyLoading] = useState(false);
+  const [type, setType] = useState<Type>(Type.COLLECT_MODULES);
 
-  const {
-    data: enabledModules,
-    loading: enabledModulesLoading,
-    error: enabledModulesError
-  } = useEnabledCurrenciesQuery({
-    variables: { request: { limit: LimitType.TwentyFive } }
-  });
-
-  useEffectOnce(() => {
+  useEffect(() => {
     Leafwatch.track(PAGEVIEW, { page: 'settings', subpage: 'allowance' });
-  });
-
-  const { data, loading, error, refetch } =
-    useApprovedModuleAllowanceAmountQuery({
-      variables: { request: getAllowancePayload(DEFAULT_COLLECT_TOKEN) },
-      skip: !currentProfile?.id || enabledModulesLoading
-    });
-
-  if (error || enabledModulesError) {
-    return <Custom500 />;
-  }
+  }, []);
 
   if (!currentProfile) {
     return <NotLoggedIn />;
@@ -72,47 +43,23 @@ const AllowanceSettings: NextPage = () => {
         <SettingsSidebar />
       </GridItemFour>
       <GridItemEight>
-        <Card>
-          <div className="mx-5 mt-5">
-            <div className="space-y-3">
-              <div className="text-lg font-bold">Allow / revoke modules</div>
-              <p>
-                In order to use collect feature you need to allow the module you
-                use, you can allow and revoke the module anytime.
-              </p>
-            </div>
-            <div className="divider my-5" />
-            <div className="label mt-6">Select currency</div>
-            <select
-              className="focus:border-brand-500 focus:ring-brand-400 w-full rounded-xl border border-gray-300 bg-white outline-none dark:border-gray-700 dark:bg-gray-800"
-              onChange={(e) => {
-                setCurrencyLoading(true);
-                refetch({
-                  request: getAllowancePayload(e.target.value)
-                }).finally(() => setCurrencyLoading(false));
-              }}
-            >
-              {enabledModulesLoading ? (
-                <option>Loading...</option>
-              ) : (
-                enabledModules?.currencies.items.map((currency: Erc20) => (
-                  <option
-                    key={currency.contract.address}
-                    value={currency.contract.address}
-                  >
-                    {currency.name}
-                  </option>
-                ))
-              )}
-            </select>
+        <Card className="p-5">
+          <div className="flex items-center gap-3">
+            <TabButton
+              active={type === Type.COLLECT_MODULES}
+              name="Collect & Follow Modules"
+              onClick={() => setType(Type.COLLECT_MODULES)}
+              showOnSm
+            />
+            <TabButton
+              active={type === Type.OPEN_ACTIONS}
+              name="Open Actions"
+              onClick={() => setType(Type.OPEN_ACTIONS)}
+              showOnSm
+            />
           </div>
-          {loading || enabledModulesLoading || currencyLoading ? (
-            <div className="py-5">
-              <Loader />
-            </div>
-          ) : (
-            <Allowance allowance={data} />
-          )}
+          {type === Type.COLLECT_MODULES && <CollectModules />}
+          {type === Type.OPEN_ACTIONS && <OpenActions />}
         </Card>
       </GridItemEight>
     </GridLayout>

@@ -1,13 +1,8 @@
 export enum FeatureFlag {
-  // Static flags
-  Staff = 'staff',
-  StaffMode = 'staff-mode',
+  Flagged = 'flagged',
   Gardener = 'gardener',
   GardenerMode = 'gardener-mode',
-  LensMember = 'lens-member',
-  FeatureFlipper = 'feature-flipper',
-  // Flags
-  LiveStream = 'live-stream',
-  Pro = 'pro',
-  HandleSettings = 'handle-settings'
+  Staff = 'staff',
+  StaffMode = 'staff-mode',
+  Suspended = 'suspended'
 }

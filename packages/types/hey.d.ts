@@ -5,55 +5,88 @@ import type {
 } from '@hey/lens';
 
 export type Group = {
-  id: string;
-  slug: string;
-  name: string;
-  description: string;
   avatar: string;
-  tags: string[];
-  lens: string | null;
-  x: string | null;
-  discord: string | null;
-  instagram: string | null;
+  createdAt: Date;
+  creatorId: string;
+  description: string;
+  discord: null | string;
   featured: boolean;
-  createdAt: Date;
-};
-export type StaffPick = {
+  hasFavorited: boolean;
   id: string;
-  type: 'GROUP' | 'PROFILE';
-  score: number;
-  createdAt: Date;
+  instagram: null | string;
+  isMember: boolean;
+  lens: null | string;
+  members: number;
+  name: string;
+  slug: string;
+  tags: string[];
+  x: null | string;
 };
-export type Features = {
+
+export type StaffPick = {
+  createdAt: Date;
+  id: string;
+};
+
+export type Feature = {
+  createdAt: Date;
+  enabled: boolean;
   id: string;
   key: string;
-  name: string;
-  description: string;
   priority: number;
-  enabled: boolean;
-  createdAt: Date;
+  type: 'FEATURE' | 'MODE' | 'PERMISSION';
 };
-export type MembershipNft = {
+
+export type AllowedToken = {
+  contractAddress: string;
+  decimals: number;
   id: string;
-  dismissedOrMinted: boolean;
+  name: string;
+  symbol: string;
+};
+
+export type MembershipNft = {
   createdAt: Date;
+  dismissedOrMinted: boolean;
+  id: string;
 };
 
 export type CollectModuleType = {
-  type?:
-    | CollectOpenActionModuleType.SimpleCollectOpenActionModule
-    | CollectOpenActionModuleType.MultirecipientFeeCollectOpenActionModule
-    | null;
   amount?: AmountInput | null;
-  collectLimit?: string | null;
-  referralFee?: number;
-  recipient?: string | null;
-  recipients?: RecipientDataInput[];
+  collectLimit?: null | string;
+  endsAt?: null | string;
   followerOnly?: boolean;
-  endsAt?: string | null;
+  recipient?: null | string;
+  recipients?: RecipientDataInput[];
+  referralFee?: number;
+  type?:
+    | CollectOpenActionModuleType.MultirecipientFeeCollectOpenActionModule
+    | CollectOpenActionModuleType.SimpleCollectOpenActionModule
+    | null;
 };
 
 export type PublicationViewCount = {
   id: string;
   views: number;
+};
+
+export type PollOption = {
+  id: string;
+  option: string;
+  percentage: number;
+  responses: number;
+  voted: boolean;
+};
+
+export type Poll = {
+  endsAt: Date;
+  id: string;
+  options: PollOption[];
+};
+
+export type Preferences = {
+  features: string[];
+  hasDismissedOrMintedMembershipNft: boolean;
+  highSignalNotificationFilter: boolean;
+  isPride: boolean;
 };

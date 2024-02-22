@@ -1,12 +1,16 @@
+import type { Profile } from '@hey/lens';
+import type { FC } from 'react';
+
 import { Menu } from '@headlessui/react';
 import { FeatureFlag } from '@hey/data/feature-flags';
-import type { Profile } from '@hey/lens';
+import { KillSwitch } from '@hey/data/kill-switches';
 import getAvatar from '@hey/lib/getAvatar';
+import getLennyURL from '@hey/lib/getLennyURL';
 import getProfile from '@hey/lib/getProfile';
 import { Image } from '@hey/ui';
 import cn from '@hey/ui/cn';
+import isFeatureAvailable from '@lib/isFeatureAvailable';
 import isFeatureEnabled from '@lib/isFeatureEnabled';
-import type { FC } from 'react';
 import { useGlobalModalStateStore } from 'src/store/non-persisted/useGlobalModalStateStore';
 import useProfileStore from 'src/store/persisted/useProfileStore';
 
@@ -18,8 +22,6 @@ import AppVersion from './NavItems/AppVersion';
 import GardenerMode from './NavItems/GardenerMode';
 import Invites from './NavItems/Invites';
 import Logout from './NavItems/Logout';
-import Mod from './NavItems/Mod';
-import Pro from './NavItems/Pro';
 import Settings from './NavItems/Settings';
 import StaffMode from './NavItems/StaffMode';
 import SwitchProfile from './NavItems/SwitchProfile';
@@ -37,9 +39,12 @@ const SignedUser: FC = () => {
 
   const Avatar = () => (
     <Image
-      src={getAvatar(currentProfile as Profile)}
-      className="h-8 w-8 cursor-pointer rounded-full border dark:border-gray-700"
       alt={currentProfile?.id}
+      className="size-8 cursor-pointer rounded-full border dark:border-gray-700"
+      onError={({ currentTarget }) => {
+        currentTarget.src = getLennyURL(currentProfile?.id);
+      }}
+      src={getAvatar(currentProfile as Profile)}
     />
   );
 
@@ -53,6 +58,7 @@ const SignedUser: FC = () => {
       <button
         className="focus:outline-none md:hidden"
         onClick={() => openMobileMenuDrawer()}
+        type="button"
       >
         <Avatar />
       </button>
@@ -62,13 +68,13 @@ const SignedUser: FC = () => {
         </Menu.Button>
         <MenuTransition>
           <Menu.Items
-            static
             className="absolute right-0 mt-2 w-48 rounded-xl border bg-white py-1 shadow-sm focus:outline-none dark:border-gray-700 dark:bg-black"
+            static
           >
             <Menu.Item
               as={NextLink}
-              href={getProfile(currentProfile).link}
               className="m-2 flex items-center rounded-lg px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
+              href={getProfile(currentProfile).link}
             >
               <div className="flex w-full flex-col">
                 <div>Logged in as</div>
@@ -95,50 +101,30 @@ const SignedUser: FC = () => {
             <div className="divider" />
             <Menu.Item
               as={NextLink}
-              href={getProfile(currentProfile).link}
               className={({ active }: { active: boolean }) =>
                 cn({ 'dropdown-active': active }, 'menu-item')
               }
+              href={getProfile(currentProfile).link}
             >
               <YourProfile />
             </Menu.Item>
             <Menu.Item
               as={NextLink}
-              href="/settings"
               className={({ active }: { active: boolean }) =>
                 cn({ 'dropdown-active': active }, 'menu-item')
               }
+              href="/settings"
             >
               <Settings />
             </Menu.Item>
-            {isFeatureEnabled(FeatureFlag.Gardener) ? (
+            {isFeatureEnabled(KillSwitch.Invites) && (
               <Menu.Item
-                as={NextLink}
-                href="/mod"
+                as="div"
                 className={({ active }: { active: boolean }) =>
-                  cn({ 'dropdown-active': active }, 'menu-item')
+                  cn({ 'dropdown-active': active }, 'm-2 rounded-lg')
                 }
               >
-                <Mod />
-              </Menu.Item>
-            ) : null}
-            <Menu.Item
-              as="div"
-              className={({ active }: { active: boolean }) =>
-                cn({ 'dropdown-active': active }, 'm-2 rounded-lg')
-              }
-            >
-              <Invites />
-            </Menu.Item>
-            {isFeatureEnabled(FeatureFlag.Pro) && (
-              <Menu.Item
-                as={NextLink}
-                href="/pro"
-                className={({ active }: { active: boolean }) =>
-                  cn({ 'dropdown-active': active }, 'menu-item')
-                }
-              >
-                <Pro />
+                <Invites />
               </Menu.Item>
             )}
             <Menu.Item
@@ -158,7 +144,7 @@ const SignedUser: FC = () => {
             >
               <ThemeSwitch />
             </Menu.Item>
-            {isFeatureEnabled(FeatureFlag.Gardener) ? (
+            {isFeatureAvailable(FeatureFlag.Gardener) ? (
               <Menu.Item
                 as="div"
                 className={({ active }) =>
@@ -171,7 +157,7 @@ const SignedUser: FC = () => {
                 <GardenerMode />
               </Menu.Item>
             ) : null}
-            {isFeatureEnabled(FeatureFlag.Staff) ? (
+            {isFeatureAvailable(FeatureFlag.Staff) ? (
               <Menu.Item
                 as="div"
                 className={({ active }) =>

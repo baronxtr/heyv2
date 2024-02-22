@@ -1,53 +1,53 @@
+import type { Profile } from '@hey/lens';
+import type { NextPage } from 'next';
+
 import MetaTags from '@components/Common/MetaTags';
 import NewPost from '@components/Composer/Post/New';
 import {
   APP_NAME,
   HANDLE_PREFIX,
-  IS_MAINNET,
   STATIC_IMAGES_URL
 } from '@hey/data/constants';
 import { PAGEVIEW } from '@hey/data/tracking';
-import type { Profile } from '@hey/lens';
-import { FollowModuleType, useProfileQuery } from '@hey/lens';
+import { useProfileQuery } from '@hey/lens';
 import getProfile from '@hey/lib/getProfile';
-import { GridItemEight, GridItemFour, GridLayout, Modal } from '@hey/ui';
+import { GridItemEight, GridItemFour, GridLayout } from '@hey/ui';
 import { Leafwatch } from '@lib/leafwatch';
-import type { NextPage } from 'next';
 import { useRouter } from 'next/router';
-import { useState } from 'react';
+import { useEffect } from 'react';
 import { ProfileFeedType } from 'src/enums';
 import Custom404 from 'src/pages/404';
 import Custom500 from 'src/pages/500';
 import useProfileStore from 'src/store/persisted/useProfileStore';
-import { useEffectOnce, useUpdateEffect } from 'usehooks-ts';
 
-import Achievements from './Achievements';
 import Cover from './Cover';
 import Details from './Details';
 import Feed from './Feed';
 import FeedType from './FeedType';
-import FollowDialog from './FollowDialog';
-import NftGallery from './NftGallery';
 import ProfilePageShimmer from './Shimmer';
 
 const ViewProfile: NextPage = () => {
   const {
-    query: { handle, id, type, followIntent },
-    isReady
+    isReady,
+    query: { handle, id, source, type }
   } = useRouter();
   const currentProfile = useProfileStore((state) => state.currentProfile);
 
-  useEffectOnce(() => {
-    Leafwatch.track(PAGEVIEW, { page: 'profile' });
-  });
+  useEffect(() => {
+    if (isReady) {
+      Leafwatch.track(PAGEVIEW, {
+        page: 'profile',
+        ...(source ? { source } : {})
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [handle, id]);
 
   const lowerCaseProfileFeedType = [
     ProfileFeedType.Feed.toLowerCase(),
     ProfileFeedType.Replies.toLowerCase(),
     ProfileFeedType.Media.toLowerCase(),
-    ProfileFeedType.Collects.toLowerCase(),
-    ProfileFeedType.Gallery.toLowerCase(),
-    ProfileFeedType.Stats.toLowerCase()
+    ProfileFeedType.Collects.toLowerCase()
   ];
 
   const feedType = type
@@ -56,48 +56,18 @@ const ViewProfile: NextPage = () => {
       : ProfileFeedType.Feed
     : ProfileFeedType.Feed;
 
-  const { data, loading, error } = useProfileQuery({
+  const { data, error, loading } = useProfileQuery({
+    skip: id ? !id : !handle,
     variables: {
       request: {
         ...(id
           ? { forProfileId: id }
           : { forHandle: `${HANDLE_PREFIX}${handle}` })
       }
-    },
-    skip: id ? !id : !handle
+    }
   });
 
   const profile = data?.profile as Profile;
-  const [following, setFollowing] = useState<boolean | null>(null);
-  const [showFollowModal, setShowFollowModal] = useState(false);
-  const isFollowedByMe =
-    Boolean(currentProfile) &&
-    Boolean(profile?.operations.isFollowedByMe.value);
-
-  const followType = profile?.followModule?.type;
-  const initState = following === null;
-  // profile is not defined until the second render
-  if (initState && profile) {
-    const canFollow =
-      followType !== FollowModuleType.RevertFollowModule && !isFollowedByMe;
-    if (followIntent && canFollow) {
-      setShowFollowModal(true);
-    }
-    setFollowing(isFollowedByMe);
-  }
-
-  // Profile changes when user selects a new profile from search box
-  useUpdateEffect(() => {
-    if (profile) {
-      setFollowing(null);
-    }
-  }, [profile]);
-
-  useUpdateEffect(() => {
-    if (following) {
-      setShowFollowModal(false);
-    }
-  }, [following]);
 
   if (!isReady || loading) {
     return <ProfilePageShimmer />;
@@ -113,13 +83,6 @@ const ViewProfile: NextPage = () => {
 
   return (
     <>
-      <Modal show={showFollowModal} onClose={() => setShowFollowModal(false)}>
-        <FollowDialog
-          profile={profile as Profile}
-          setFollowing={setFollowing}
-          setShowFollowModal={setShowFollowModal}
-        />
-      </Modal>
       <MetaTags
         title={`${getProfile(profile).displayName} (${
           getProfile(profile).slugWithPrefix
@@ -131,13 +94,9 @@ const ViewProfile: NextPage = () => {
           `${STATIC_IMAGES_URL}/patterns/2.svg`
         }
       />
-      <GridLayout className="pt-6">
+      <GridLayout>
         <GridItemFour>
-          <Details
-            profile={profile as Profile}
-            following={Boolean(following)}
-            setFollowing={setFollowing}
-          />
+          <Details profile={profile as Profile} />
         </GridItemFour>
         <GridItemEight className="space-y-5">
           <FeedType feedType={feedType} />
@@ -146,13 +105,11 @@ const ViewProfile: NextPage = () => {
           feedType === ProfileFeedType.Replies ||
           feedType === ProfileFeedType.Media ||
           feedType === ProfileFeedType.Collects ? (
-            <Feed profile={profile as Profile} type={feedType} />
-          ) : null}
-          {feedType === ProfileFeedType.Gallery ? (
-            <NftGallery profile={profile as Profile} />
-          ) : null}
-          {feedType === ProfileFeedType.Stats && IS_MAINNET ? (
-            <Achievements profile={profile as Profile} />
+            <Feed
+              handle={getProfile(profile).slugWithPrefix}
+              profileId={profile.id}
+              type={feedType}
+            />
           ) : null}
         </GridItemEight>
       </GridLayout>

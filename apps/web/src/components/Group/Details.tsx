@@ -1,24 +1,29 @@
+import type { Group } from '@hey/types/hey';
+import type { FC, ReactNode } from 'react';
+
+import LazySmallUserProfile from '@components/Shared/LazySmallUserProfile';
 import Markup from '@components/Shared/Markup';
 import Slug from '@components/Shared/Slug';
-import { ClockIcon } from '@heroicons/react/24/outline';
+import { ClockIcon, UserIcon } from '@heroicons/react/24/outline';
 import { FireIcon } from '@heroicons/react/24/solid';
 import { APP_NAME, STATIC_IMAGES_URL } from '@hey/data/constants';
+import formatDate from '@hey/lib/datetime/formatDate';
 import getMentions from '@hey/lib/getMentions';
-import type { Group } from '@hey/types/hey';
+import sanitizeDStorageUrl from '@hey/lib/sanitizeDStorageUrl';
 import { Image, LightBox, Tooltip } from '@hey/ui';
-import { formatDate } from '@lib/formatTime';
-import Link from 'next/link';
 import { useTheme } from 'next-themes';
-import type { FC, ReactNode } from 'react';
+import Link from 'next/link';
 import { useState } from 'react';
 import urlcat from 'urlcat';
+
+import Membership from './Membership';
 
 interface DetailsProps {
   group: Group;
 }
 
 const Details: FC<DetailsProps> = ({ group }) => {
-  const [expandedImage, setExpandedImage] = useState<string | null>(null);
+  const [expandedImage, setExpandedImage] = useState<null | string>(null);
   const { resolvedTheme } = useTheme();
 
   const MetaDetails = ({
@@ -36,19 +41,19 @@ const Details: FC<DetailsProps> = ({ group }) => {
 
   return (
     <div className="mb-4 space-y-5 px-5 sm:px-0">
-      <div className="relative h-32 w-32 sm:h-52 sm:w-52">
+      <div className="relative size-32 sm:size-52">
         <Image
-          onClick={() => setExpandedImage(group.avatar)}
-          src={group.avatar}
-          className="h-32 w-32 cursor-pointer rounded-xl bg-gray-200 ring-8 ring-gray-50 dark:bg-gray-700 dark:ring-black sm:h-52 sm:w-52"
-          height={128}
-          width={128}
           alt={group.slug}
+          className="size-32 cursor-pointer rounded-xl bg-gray-200 ring-8 ring-gray-50 sm:size-52 dark:bg-gray-700 dark:ring-black"
+          height={128}
+          onClick={() => setExpandedImage(sanitizeDStorageUrl(group.avatar))}
+          src={sanitizeDStorageUrl(group.avatar)}
+          width={128}
         />
         <LightBox
+          onClose={() => setExpandedImage(null)}
           show={Boolean(expandedImage)}
           url={expandedImage}
-          onClose={() => setExpandedImage(null)}
         />
       </div>
       <div className="space-y-1 py-2">
@@ -56,7 +61,7 @@ const Details: FC<DetailsProps> = ({ group }) => {
           <div className="truncate">{group.name}</div>
           {group.featured ? (
             <Tooltip content="Featured">
-              <FireIcon className="h-6 w-6 text-yellow-500" />
+              <FireIcon className="size-6 text-yellow-500" />
             </Tooltip>
           ) : null}
         </div>
@@ -67,6 +72,7 @@ const Details: FC<DetailsProps> = ({ group }) => {
           {group.description}
         </Markup>
       </div>
+      <Membership group={group} />
       <div className="space-y-5">
         <div className="divider w-full" />
         <div className="space-y-2">
@@ -74,16 +80,16 @@ const Details: FC<DetailsProps> = ({ group }) => {
             <MetaDetails
               icon={
                 <img
-                  src="/logo.png"
-                  className="h-4 w-4"
-                  height={16}
-                  width={16}
                   alt={`${APP_NAME} Logo`}
+                  className="size-4"
+                  height={16}
+                  src="/logo.png"
+                  width={16}
                 />
               }
             >
               <Link href={`/u/${group.lens}`}>
-                <Slug slug={group.lens} prefix="@" />
+                <Slug prefix="@" slug={group.lens} />
               </Link>
             </MetaDetails>
           ) : null}
@@ -91,13 +97,13 @@ const Details: FC<DetailsProps> = ({ group }) => {
             <MetaDetails
               icon={
                 <img
+                  alt="X Logo"
+                  className="size-4"
+                  height={16}
                   src={`${STATIC_IMAGES_URL}/brands/${
                     resolvedTheme === 'dark' ? 'x-dark.png' : 'x-light.png'
                   }`}
-                  className="h-4 w-4"
-                  height={16}
                   width={16}
-                  alt="X Logo"
                 />
               }
             >
@@ -105,8 +111,8 @@ const Details: FC<DetailsProps> = ({ group }) => {
                 href={urlcat('https://x.com/:username', {
                   username: group.x
                 })}
-                target="_blank"
                 rel="noreferrer noopener"
+                target="_blank"
               >
                 {group.x}
               </Link>
@@ -116,11 +122,11 @@ const Details: FC<DetailsProps> = ({ group }) => {
             <MetaDetails
               icon={
                 <img
-                  src={`${STATIC_IMAGES_URL}/brands/instagram.png`}
-                  className="h-4 w-4"
-                  height={16}
-                  width={16}
                   alt="Instagram Logo"
+                  className="size-4"
+                  height={16}
+                  src={`${STATIC_IMAGES_URL}/brands/instagram.png`}
+                  width={16}
                 />
               }
             >
@@ -128,8 +134,8 @@ const Details: FC<DetailsProps> = ({ group }) => {
                 href={urlcat('https://instagram.com/:username', {
                   username: group.instagram
                 })}
-                target="_blank"
                 rel="noreferrer noopener"
+                target="_blank"
               >
                 {group.instagram}
               </Link>
@@ -139,26 +145,33 @@ const Details: FC<DetailsProps> = ({ group }) => {
             <MetaDetails
               icon={
                 <img
-                  src={`${STATIC_IMAGES_URL}/brands/discord.png`}
-                  className="h-4 w-4"
-                  height={16}
-                  width={16}
                   alt="Discord Logo"
+                  className="size-4"
+                  height={16}
+                  src={`${STATIC_IMAGES_URL}/brands/discord.png`}
+                  width={16}
                 />
               }
             >
               <Link
                 href={group.discord}
-                target="_blank"
                 rel="noreferrer noopener"
+                target="_blank"
               >
                 Discord
               </Link>
             </MetaDetails>
           ) : null}
-          <MetaDetails icon={<ClockIcon className="h-4 w-4" />}>
-            {formatDate(new Date(group.createdAt))}
+          <MetaDetails icon={<ClockIcon className="size-4" />}>
+            {formatDate(group.createdAt)}
           </MetaDetails>
+          {group.creatorId !== '0x00' ? (
+            <MetaDetails icon={<UserIcon className="size-4" />}>
+              <Tooltip content="Creator">
+                <LazySmallUserProfile id={group.creatorId} />
+              </Tooltip>
+            </MetaDetails>
+          ) : null}
         </div>
       </div>
     </div>

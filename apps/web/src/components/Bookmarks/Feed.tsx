@@ -1,14 +1,15 @@
-import SinglePublication from '@components/Publication/SinglePublication';
-import PublicationsShimmer from '@components/Shared/Shimmer/PublicationsShimmer';
-import { BookmarkIcon } from '@heroicons/react/24/outline';
 import type {
   AnyPublication,
   PublicationBookmarksRequest,
   PublicationMetadataMainFocusType
 } from '@hey/lens';
+import type { FC } from 'react';
+
+import SinglePublication from '@components/Publication/SinglePublication';
+import PublicationsShimmer from '@components/Shared/Shimmer/PublicationsShimmer';
+import { BookmarkIcon } from '@heroicons/react/24/outline';
 import { LimitType, usePublicationBookmarksQuery } from '@hey/lens';
 import { Card, EmptyState, ErrorMessage } from '@hey/ui';
-import { type FC } from 'react';
 import { useInView } from 'react-cool-inview';
 import { useImpressionsStore } from 'src/store/non-persisted/useImpressionsStore';
 
@@ -23,19 +24,19 @@ const Feed: FC<FeedProps> = ({ focus }) => {
 
   // Variables
   const request: PublicationBookmarksRequest = {
-    where: { metadata: { ...(focus && { mainContentFocus: [focus] }) } },
-    limit: LimitType.TwentyFive
+    limit: LimitType.TwentyFive,
+    where: { metadata: { ...(focus && { mainContentFocus: [focus] }) } }
   };
 
-  const { data, loading, error, fetchMore } = usePublicationBookmarksQuery({
-    variables: { request },
+  const { data, error, fetchMore, loading } = usePublicationBookmarksQuery({
     onCompleted: async ({ publicationBookmarks }) => {
       const ids =
         publicationBookmarks?.items?.map((p) => {
           return p.__typename === 'Mirror' ? p.mirrorOn?.id : p.id;
         }) || [];
       await fetchAndStoreViews(ids);
-    }
+    },
+    variables: { request }
   });
 
   const publications = data?.publicationBookmarks?.items;
@@ -66,23 +67,23 @@ const Feed: FC<FeedProps> = ({ focus }) => {
   if (publications?.length === 0) {
     return (
       <EmptyState
+        icon={<BookmarkIcon className="text-brand-500 size-8" />}
         message="No bookmarks yet!"
-        icon={<BookmarkIcon className="text-brand-500 h-8 w-8" />}
       />
     );
   }
 
   if (error) {
-    return <ErrorMessage title="Failed to load bookmark feed" error={error} />;
+    return <ErrorMessage error={error} title="Failed to load bookmark feed" />;
   }
 
   return (
     <Card className="divide-y-[1px] dark:divide-gray-700">
       {publications?.map((publication, index) => (
         <SinglePublication
-          key={`${publication.id}_${index}`}
           isFirst={index === 0}
           isLast={index === publications.length - 1}
+          key={`${publication.id}_${index}`}
           publication={publication as AnyPublication}
         />
       ))}

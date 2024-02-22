@@ -1,11 +1,12 @@
+import type { Profile, WhoActedOnPublicationRequest } from '@hey/lens';
+import type { FC } from 'react';
+
 import UserProfile from '@components/Shared/UserProfile';
 import { RectangleStackIcon } from '@heroicons/react/24/outline';
-import { FollowUnfollowSource } from '@hey/data/tracking';
-import type { Profile, WhoActedOnPublicationRequest } from '@hey/lens';
+import { ProfileLinkSource } from '@hey/data/tracking';
 import { LimitType, useWhoActedOnPublicationQuery } from '@hey/lens';
 import { EmptyState, ErrorMessage } from '@hey/ui';
 import { motion } from 'framer-motion';
-import { type FC } from 'react';
 import { Virtuoso } from 'react-virtuoso';
 
 import Loader from '../Loader';
@@ -17,13 +18,13 @@ interface CollectorsProps {
 const Collectors: FC<CollectorsProps> = ({ publicationId }) => {
   // Variables
   const request: WhoActedOnPublicationRequest = {
-    on: publicationId,
-    limit: LimitType.TwentyFive
+    limit: LimitType.TwentyFive,
+    on: publicationId
   };
 
-  const { data, loading, error, fetchMore } = useWhoActedOnPublicationQuery({
-    variables: { request },
-    skip: !publicationId
+  const { data, error, fetchMore, loading } = useWhoActedOnPublicationQuery({
+    skip: !publicationId,
+    variables: { request }
   });
 
   const profiles = data?.whoActedOnPublication?.items;
@@ -48,9 +49,9 @@ const Collectors: FC<CollectorsProps> = ({ publicationId }) => {
     return (
       <div className="p-5">
         <EmptyState
-          message="No collectors."
-          icon={<RectangleStackIcon className="text-brand-500 h-8 w-8" />}
           hideCard
+          icon={<RectangleStackIcon className="text-brand-500 size-8" />}
+          message="No collectors."
         />
       </div>
     );
@@ -59,30 +60,28 @@ const Collectors: FC<CollectorsProps> = ({ publicationId }) => {
   return (
     <div className="max-h-[80vh] overflow-y-auto">
       <ErrorMessage
-        title="Failed to load collectors"
-        error={error}
         className="m-5"
+        error={error}
+        title="Failed to load collectors"
       />
       <Virtuoso
         className="virtual-profile-list"
         data={profiles}
         endReached={onEndReached}
-        itemContent={(index, profile) => {
+        itemContent={(_, profile) => {
           return (
             <motion.div
-              initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
               className="p-5"
+              exit={{ opacity: 0 }}
+              initial={{ opacity: 0 }}
             >
               <UserProfile
                 profile={profile as Profile}
-                isFollowing={profile.operations.isFollowedByMe.value}
-                followUnfollowPosition={index + 1}
-                followUnfollowSource={FollowUnfollowSource.COLLECTORS_MODAL}
                 showBio
                 showFollow
                 showUserPreview={false}
+                source={ProfileLinkSource.Collects}
               />
             </motion.div>
           );

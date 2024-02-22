@@ -1,18 +1,18 @@
+import type { MirrorNotification as TMirrorNotification } from '@hey/lens';
+
 import Markup from '@components/Shared/Markup';
 import { ArrowsRightLeftIcon } from '@heroicons/react/24/solid';
-import { MirrorNotification } from '@hey/lens';
 import getPublicationData from '@hey/lib/getPublicationData';
 import pushToImpressions from '@lib/pushToImpressions';
 import Link from 'next/link';
 import plur from 'plur';
-import type { FC } from 'react';
-import { useEffectOnce } from 'usehooks-ts';
+import { type FC, useEffect } from 'react';
 
 import AggregatedNotificationTitle from '../AggregatedNotificationTitle';
 import { NotificationProfileAvatar } from '../Profile';
 
 interface MirrorNotificationProps {
-  notification: MirrorNotification;
+  notification: TMirrorNotification;
 }
 
 const MirrorNotification: FC<MirrorNotificationProps> = ({ notification }) => {
@@ -28,14 +28,15 @@ const MirrorNotification: FC<MirrorNotificationProps> = ({ notification }) => {
     : 'mirrored your';
   const type = notification?.publication.__typename;
 
-  useEffectOnce(() => {
+  useEffect(() => {
     pushToImpressions(notification.publication.id);
-  });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="space-y-2">
       <div className="flex items-center space-x-3">
-        <ArrowsRightLeftIcon className="text-brand-500/70 h-6 w-6" />
+        <ArrowsRightLeftIcon className="text-brand-500/70 size-6" />
         <div className="flex items-center space-x-1">
           {mirrors.slice(0, 10).map((mirror) => (
             <div key={mirror.profile.id}>
@@ -47,13 +48,13 @@ const MirrorNotification: FC<MirrorNotificationProps> = ({ notification }) => {
       <div className="ml-9">
         <AggregatedNotificationTitle
           firstProfile={firstProfile}
+          linkToType={`/posts/${notification?.publication?.id}`}
           text={text}
           type={type}
-          linkToType={`/posts/${notification?.publication?.id}`}
         />
         <Link
-          href={`/posts/${notification?.publication?.id}`}
           className="ld-text-gray-500 linkify mt-2 line-clamp-2"
+          href={`/posts/${notification?.publication?.id}`}
         >
           <Markup mentions={notification.publication.profilesMentioned}>
             {filteredContent}

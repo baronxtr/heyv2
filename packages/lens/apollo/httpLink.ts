@@ -1,10 +1,13 @@
 import { HttpLink } from '@apollo/client';
-import { API_URL } from '@hey/data/constants';
+import { APP_NAME, LENS_API_URL } from '@hey/data/constants';
 
 const httpLink = new HttpLink({
-  uri: API_URL,
+  fetch,
   fetchOptions: 'no-cors',
-  fetch
+  headers: {
+    'x-requested-from': APP_NAME.toLowerCase()
+  },
+  uri: LENS_API_URL
 });
 
 export default httpLink;

@@ -7,6 +7,7 @@ fragment OpenActionModulesFields on OpenActionModule {
     amount {
       ...AmountFields
     }
+    collectNft
     collectLimit
     followerOnly
     recipient
@@ -21,6 +22,7 @@ fragment OpenActionModulesFields on OpenActionModule {
     amount {
       ...AmountFields
     }
+    collectNft
     collectLimit
     referralFee
     followerOnly
@@ -32,21 +34,70 @@ fragment OpenActionModulesFields on OpenActionModule {
   }
   ... on LegacyFreeCollectModuleSettings {
     type
+    contract {
+      ...NetworkAddressFields
+    }
+    collectNft
+    followerOnly
   }
   ... on LegacyFeeCollectModuleSettings {
     type
+    contract {
+      ...NetworkAddressFields
+    }
+    amount {
+      ...AmountFields
+    }
+    collectNft
+    followerOnly
+    recipient
+    referralFee
   }
   ... on LegacyLimitedFeeCollectModuleSettings {
     type
+    contract {
+      ...NetworkAddressFields
+    }
+    amount {
+      ...AmountFields
+    }
+    collectNft
+    collectLimit
+    followerOnly
+    recipient
+    referralFee
   }
   ... on LegacyLimitedTimedFeeCollectModuleSettings {
     type
+    contract {
+      ...NetworkAddressFields
+    }
+    amount {
+      ...AmountFields
+    }
+    collectNft
+    collectLimit
+    followerOnly
+    recipient
+    referralFee
+    endTimestamp
   }
   ... on LegacyRevertCollectModuleSettings {
     type
   }
   ... on LegacyTimedFeeCollectModuleSettings {
     type
+    contract {
+      ...NetworkAddressFields
+    }
+    amount {
+      ...AmountFields
+    }
+    collectNft
+    followerOnly
+    recipient
+    referralFee
+    endTimestamp
   }
   ... on LegacyMultirecipientFeeCollectModuleSettings {
     type
@@ -56,6 +107,7 @@ fragment OpenActionModulesFields on OpenActionModule {
     amount {
       ...AmountFields
     }
+    collectNft
     collectLimit
     referralFee
     followerOnly
@@ -73,6 +125,7 @@ fragment OpenActionModulesFields on OpenActionModule {
     amount {
       ...AmountFields
     }
+    collectNft
     collectLimit
     followerOnly
     recipient
@@ -90,6 +143,8 @@ fragment OpenActionModulesFields on OpenActionModule {
     contract {
       ...NetworkAddressFields
     }
+    initializeResultData
+    initializeCalldata
     openActionModuleReturnData
   }
 }

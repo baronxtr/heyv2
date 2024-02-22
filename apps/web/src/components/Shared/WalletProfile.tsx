@@ -1,3 +1,6 @@
+import type { FC } from 'react';
+import type { Address } from 'viem';
+
 import { ArrowTopRightOnSquareIcon } from '@heroicons/react/24/outline';
 import { POLYGONSCAN_URL } from '@hey/data/constants';
 import formatAddress from '@hey/lib/formatAddress';
@@ -5,9 +8,7 @@ import getStampFyiURL from '@hey/lib/getStampFyiURL';
 import imageKit from '@hey/lib/imageKit';
 import { Image } from '@hey/ui';
 import Link from 'next/link';
-import { type FC } from 'react';
 import useEnsName from 'src/hooks/useEnsName';
-import type { Address } from 'viem';
 
 import Slug from './Slug';
 
@@ -24,25 +25,25 @@ const WalletProfile: FC<WalletProfileProps> = ({ address }) => {
   return (
     <div className="flex items-center justify-between">
       <Link
-        href={`${POLYGONSCAN_URL}/address/${address}`}
         className="flex items-center space-x-3"
-        target="_blank"
+        href={`${POLYGONSCAN_URL}/address/${address}`}
         rel="noreferrer noopener"
+        target="_blank"
       >
         <Image
+          alt={address}
+          className="size-10 rounded-full border bg-gray-200"
+          height={40}
           onError={({ currentTarget }) => {
             currentTarget.src = getStampFyiURL(address);
           }}
           src={imageKit(getStampFyiURL(address))}
-          className="h-10 w-10 rounded-full border bg-gray-200"
-          height={40}
           width={40}
-          alt={address}
         />
         <div>
           <div className="flex items-center gap-1.5">
             <div>{loading ? formatAddress(address) : formatAddress(ens)}</div>
-            <ArrowTopRightOnSquareIcon className="h-4 w-4" />
+            <ArrowTopRightOnSquareIcon className="size-4" />
           </div>
           <Slug className="text-sm" slug={formatAddress(address)} />
         </div>

@@ -1,12 +1,13 @@
+import type { FC } from 'react';
+
 import { Menu } from '@headlessui/react';
 import cn from '@hey/ui/cn';
-import type { FC } from 'react';
 import useProfileStore from 'src/store/persisted/useProfileStore';
 
 import MenuTransition from '../MenuTransition';
 import Bookmarks from './NavItems/Bookmarks';
-import ReportBug from './NavItems/ReportBug';
-
+import CreateGroup from './NavItems/CreateGroup';
+import Support from './NavItems/Support';
 const MoreNavItems: FC = () => {
   const currentProfile = useProfileStore((state) => state.currentProfile);
 
@@ -28,8 +29,8 @@ const MoreNavItems: FC = () => {
           </Menu.Button>
           <MenuTransition>
             <Menu.Items
+              className="absolute mt-2 rounded-xl border bg-white shadow-sm focus:outline-none dark:border-gray-700 dark:bg-gray-900"
               static
-              className="absolute mt-2 rounded-xl border bg-white py-1 shadow-sm focus:outline-none dark:border-gray-700 dark:bg-gray-900"
             >
               {currentProfile ? (
                 <>
@@ -41,6 +42,14 @@ const MoreNavItems: FC = () => {
                   >
                     <Bookmarks />
                   </Menu.Item>
+                  <Menu.Item
+                    as="div"
+                    className={({ active }: { active: boolean }) =>
+                      cn({ 'dropdown-active': active }, 'm-2 rounded-lg')
+                    }
+                  >
+                    <CreateGroup />
+                  </Menu.Item>
                   <div className="divider" />
                 </>
               ) : null}
@@ -50,7 +59,7 @@ const MoreNavItems: FC = () => {
                   cn({ 'dropdown-active': active }, 'm-2 rounded-lg')
                 }
               >
-                <ReportBug />
+                <Support />
               </Menu.Item>
             </Menu.Items>
           </MenuTransition>

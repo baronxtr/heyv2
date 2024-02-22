@@ -1,56 +1,68 @@
+import type { OG } from '@hey/types/misc';
+import type { FC } from 'react';
+
 import { HEY_API_URL } from '@hey/data/constants';
 import getFavicon from '@hey/lib/getFavicon';
-import type { OG } from '@hey/types/misc';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { type FC } from 'react';
 
 import Embed from './Embed';
+import Nft from './Nft';
 import Player from './Player';
+import Portal from './Portal';
 
 interface OembedProps {
-  url?: string;
+  className?: string;
   publicationId?: string;
-  onData: (data: OG) => void;
+  url?: string;
 }
 
-const Oembed: FC<OembedProps> = ({ url, publicationId, onData }) => {
-  const { isLoading, error, data } = useQuery({
-    queryKey: ['oembed', url],
+const Oembed: FC<OembedProps> = ({ className = '', publicationId, url }) => {
+  const { data, error, isLoading } = useQuery({
+    enabled: Boolean(url),
     queryFn: async () => {
       const response = await axios.get(`${HEY_API_URL}/oembed`, {
         params: { url }
       });
       return response.data.oembed;
     },
-    enabled: Boolean(url)
+    queryKey: ['oembed', url],
+    refetchOnMount: false
   });
 
   if (isLoading || error || !data) {
     return null;
-  } else if (data) {
-    onData(data);
   }
 
   const og: OG = {
-    url: url as string,
-    title: data?.title,
     description: data?.description,
-    site: data?.site,
     favicon: getFavicon(data.url),
+    html: data?.html,
     image: data?.image,
     isLarge: data?.isLarge,
-    html: data?.html
+    nft: data?.nft,
+    portal: data?.portal,
+    site: data?.site,
+    title: data?.title,
+    url: url as string
   };
 
-  if (!og.title) {
+  if (!og.title && !og.html && !og.nft && !og.portal) {
     return null;
   }
 
-  return og.html ? (
-    <Player og={og} />
-  ) : (
-    <Embed og={og} publicationId={publicationId} />
+  return (
+    <div className={className}>
+      {og.html ? (
+        <Player og={og} />
+      ) : og.nft ? (
+        <Nft nft={og.nft} publicationId={publicationId} />
+      ) : og.portal ? (
+        <Portal portal={og.portal} publicationId={publicationId} />
+      ) : (
+        <Embed og={og} publicationId={publicationId} />
+      )}
+    </div>
   );
 };
 

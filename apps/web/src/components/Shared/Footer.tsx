@@ -1,9 +1,10 @@
+import type { FC } from 'react';
+
 import { APP_NAME } from '@hey/data/constants';
 import { MISCELLANEOUS } from '@hey/data/tracking';
 import { Leafwatch } from '@lib/leafwatch';
 import Link from 'next/link';
-import type { FC } from 'react';
-import { useFeatureFlagsStore } from 'src/store/non-persisted/useFeatureFlagsStore';
+import { useFeatureFlagsStore } from 'src/store/persisted/useFeatureFlagsStore';
 import urlcat from 'urlcat';
 
 const Footer: FC = () => {
@@ -21,64 +22,54 @@ const Footer: FC = () => {
         <Link href="/privacy">Privacy</Link>
         <Link
           href="https://hey.xyz/discord"
-          target="_blank"
-          rel="noreferrer noopener"
           onClick={() => Leafwatch.track(MISCELLANEOUS.FOOTER.OPEN_DISCORD)}
+          rel="noreferrer noopener"
+          target="_blank"
         >
           Discord
         </Link>
         <Link
-          href="https://hey.xyz/donate"
-          target="_blank"
-          rel="noreferrer noopener"
-          onClick={() => Leafwatch.track(MISCELLANEOUS.FOOTER.OPEN_DONATE)}
-        >
-          Donate
-        </Link>
-        <Link
           href="https://status.hey.xyz"
-          target="_blank"
-          rel="noreferrer noopener"
           onClick={() => Leafwatch.track(MISCELLANEOUS.FOOTER.OPEN_STATUS)}
+          rel="noreferrer noopener"
+          target="_blank"
         >
           Status
         </Link>
         <Link
           href="https://feedback.hey.xyz"
-          target="_blank"
-          rel="noreferrer noopener"
           onClick={() => Leafwatch.track(MISCELLANEOUS.FOOTER.OPEN_FEEDBACK)}
+          rel="noreferrer noopener"
+          target="_blank"
         >
           Feedback
         </Link>
-        <Link href="/thanks">Thanks</Link>
+        <Link href="/rules">Rules</Link>
         <Link
           href="https://github.com/heyxyz/hey"
-          target="_blank"
-          rel="noreferrer noopener"
           onClick={() => Leafwatch.track(MISCELLANEOUS.FOOTER.OPEN_GITHUB)}
+          rel="noreferrer noopener"
+          target="_blank"
         >
           GitHub
         </Link>
         <Link
-          href="https://translate.hey.xyz"
-          target="_blank"
-          rel="noreferrer noopener"
-          onClick={() => Leafwatch.track(MISCELLANEOUS.FOOTER.OPEN_TRANSLATE)}
+          href="/support"
+          onClick={() => Leafwatch.track(MISCELLANEOUS.FOOTER.OPEN_SUPPORT)}
         >
-          Translate
+          Support
         </Link>
       </div>
       <div className="mt-2">
         <Link
           className="hover:font-bold"
           href={urlcat('https://vercel.com', {
-            utm_source: APP_NAME,
-            utm_campaign: 'oss'
+            utm_campaign: 'oss',
+            utm_source: APP_NAME
           })}
-          target="_blank"
-          rel="noreferrer noopener"
           onClick={() => Leafwatch.track(MISCELLANEOUS.FOOTER.OPEN_VERCEL)}
+          rel="noreferrer noopener"
+          target="_blank"
         >
           ▲ Powered by Vercel
         </Link>

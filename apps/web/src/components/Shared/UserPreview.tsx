@@ -1,32 +1,30 @@
+import type { Profile } from '@hey/lens';
+import type { FC, ReactNode } from 'react';
+
+import MutualFollowers from '@components/Profile/MutualFollowers';
 import {
   CheckBadgeIcon,
   ExclamationCircleIcon
 } from '@heroicons/react/24/solid';
-import { FollowUnfollowSource } from '@hey/data/tracking';
-import type { Profile } from '@hey/lens';
 import { useProfileLazyQuery } from '@hey/lens';
 import getAvatar from '@hey/lib/getAvatar';
+import getLennyURL from '@hey/lib/getLennyURL';
 import getMentions from '@hey/lib/getMentions';
 import getProfile from '@hey/lib/getProfile';
 import hasMisused from '@hey/lib/hasMisused';
 import nFormatter from '@hey/lib/nFormatter';
-import stopEventPropagation from '@hey/lib/stopEventPropagation';
 import truncateByWords from '@hey/lib/truncateByWords';
-import { Image } from '@hey/ui';
+import { Card, Image } from '@hey/ui';
 import isVerified from '@lib/isVerified';
-import Tippy from '@tippyjs/react';
+import * as HoverCard from '@radix-ui/react-hover-card';
+import { motion } from 'framer-motion';
 import plur from 'plur';
-import type { FC, ReactNode } from 'react';
 import { useState } from 'react';
 
 import Markup from './Markup';
-import Follow from './Profile/Follow';
 import Slug from './Slug';
-import SuperFollow from './SuperFollow';
 
-const MINIMUM_LOADING_ANIMATION_MS = 500;
-const POPOVER_SHOW_ANIMATION_MS = 100;
-const POPOVER_HIDE_ANIMATION_MS = 0;
+const MINIMUM_LOADING_ANIMATION_MS = 800;
 
 interface UserPreviewProps {
   children: ReactNode;
@@ -56,19 +54,15 @@ const UserPreview: FC<UserPreviewProps> = ({
 
     setSyntheticLoading(true);
     await loadProfile({
+      onCompleted: (data) => setProfile(data?.profile as Profile),
       variables: {
         request: { ...(id ? { forProfileId: id } : { forHandle: handle }) }
-      },
-      onCompleted: (data) => setProfile(data?.profile as Profile)
+      }
     });
     setTimeout(() => {
       setSyntheticLoading(false);
     }, MINIMUM_LOADING_ANIMATION_MS);
   };
-
-  const [following, setFollowing] = useState(
-    profile?.operations.isFollowedByMe.value
-  );
 
   if (!id && !handle) {
     return null;
@@ -86,7 +80,7 @@ const UserPreview: FC<UserPreviewProps> = ({
             <div />
           </div>
           <div className="flex p-3">
-            <div>{handle ?? `#${id}`}</div>
+            <div>{handle || `#${id}`}</div>
           </div>
         </div>
       );
@@ -100,12 +94,15 @@ const UserPreview: FC<UserPreviewProps> = ({
 
     const UserAvatar = () => (
       <Image
-        src={getAvatar(profile)}
-        loading="lazy"
-        className="h-10 w-10 rounded-full border bg-gray-200 dark:border-gray-700"
-        height={40}
-        width={40}
         alt={profile.id}
+        className="size-12 rounded-full border bg-gray-200 dark:border-gray-700"
+        height={48}
+        loading="lazy"
+        onError={({ currentTarget }) => {
+          currentTarget.src = getLennyURL(profile.id);
+        }}
+        src={getAvatar(profile)}
+        width={48}
       />
     );
 
@@ -114,10 +111,10 @@ const UserPreview: FC<UserPreviewProps> = ({
         <div className="flex max-w-sm items-center gap-1 truncate">
           <div className="text-md">{getProfile(profile).displayName}</div>
           {isVerified(profile.id) ? (
-            <CheckBadgeIcon className="text-brand-500 h-4 w-4" />
+            <CheckBadgeIcon className="text-brand-500 size-4" />
           ) : null}
           {hasMisused(profile.id) ? (
-            <ExclamationCircleIcon className="h-4 w-4 text-red-500" />
+            <ExclamationCircleIcon className="size-4 text-red-500" />
           ) : null}
         </div>
         <span>
@@ -132,77 +129,72 @@ const UserPreview: FC<UserPreviewProps> = ({
     );
 
     return (
-      <>
-        <div className="flex items-center justify-between px-3.5 pb-1 pt-4">
-          <UserAvatar />
-          <div onClick={stopEventPropagation}>
-            {!profile.operations.isFollowedByMe.value ? (
-              following ? null : profile.followModule?.__typename ===
-                'FeeFollowModuleSettings' ? (
-                <SuperFollow
-                  profile={profile}
-                  setFollowing={setFollowing}
-                  superFollowSource={FollowUnfollowSource.PROFILE_POPOVER}
-                />
-              ) : (
-                <Follow
-                  profile={profile}
-                  setFollowing={setFollowing}
-                  followSource={FollowUnfollowSource.PROFILE_POPOVER}
-                />
-              )
-            ) : null}
-          </div>
-        </div>
-        <div className="space-y-3 p-4 pt-0">
-          <UserName />
-          <div>
-            {profile.metadata?.bio ? (
-              <div className="linkify mt-2 break-words text-sm leading-6">
-                <Markup mentions={getMentions(profile.metadata.bio)}>
-                  {truncateByWords(profile.metadata.bio, 20)}
-                </Markup>
-              </div>
-            ) : null}
-          </div>
-          <div className="flex items-center space-x-3">
-            <div className="flex items-center space-x-1">
-              <div className="text-base">
-                {nFormatter(profile.stats.following)}
-              </div>
-              <div className="ld-text-gray-500 text-sm">
-                {plur('Following', profile.stats.following)}
-              </div>
+      <div className="space-y-3 p-4">
+        <UserAvatar />
+        <UserName />
+        <div>
+          {profile.metadata?.bio ? (
+            <div className="linkify mt-2 break-words text-sm leading-6">
+              <Markup mentions={getMentions(profile.metadata.bio)}>
+                {truncateByWords(profile.metadata.bio, 20)}
+              </Markup>
             </div>
-            <div className="text-md flex items-center space-x-1">
-              <div className="text-base">
-                {nFormatter(profile.stats.followers)}
-              </div>
-              <div className="ld-text-gray-500 text-sm">
-                {plur('Follower', profile.stats.followers)}
-              </div>
+          ) : null}
+        </div>
+        <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-1">
+            <div className="text-base">
+              {nFormatter(profile.stats.following)}
+            </div>
+            <div className="ld-text-gray-500 text-sm">
+              {plur('Following', profile.stats.following)}
+            </div>
+          </div>
+          <div className="text-md flex items-center space-x-1">
+            <div className="text-base">
+              {nFormatter(profile.stats.followers)}
+            </div>
+            <div className="ld-text-gray-500 text-sm">
+              {plur('Follower', profile.stats.followers)}
             </div>
           </div>
         </div>
-      </>
+        <div className="!text-xs">
+          <MutualFollowers
+            profileId={profile.id}
+            setShowMutualFollowersModal={() => {}}
+            viaPopover
+          />
+        </div>
+      </div>
     );
   };
 
   return (
-    <span onMouseOver={onPreviewStart} onFocus={onPreviewStart}>
-      <Tippy
-        className="preview-tippy-content hidden w-64 !rounded-xl border !bg-white !text-black dark:border-gray-700 dark:!bg-black dark:!text-white md:block"
-        placement="bottom-start"
-        delay={[POPOVER_SHOW_ANIMATION_MS, POPOVER_HIDE_ANIMATION_MS]}
-        hideOnClick={false}
-        content={<Preview />}
-        arrow={false}
-        zIndex={1000}
-        appendTo={() => document.body}
-        interactive
-      >
-        <span>{children}</span>
-      </Tippy>
+    <span onFocus={onPreviewStart} onMouseOver={onPreviewStart}>
+      <HoverCard.Root>
+        <HoverCard.Trigger asChild>
+          <span>{children}</span>
+        </HoverCard.Trigger>
+        <HoverCard.Portal>
+          <HoverCard.Content
+            asChild
+            className="z-10 w-72"
+            side="bottom"
+            sideOffset={5}
+          >
+            <motion.div
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              initial={{ opacity: 0 }}
+            >
+              <Card forceRounded>
+                <Preview />
+              </Card>
+            </motion.div>
+          </HoverCard.Content>
+        </HoverCard.Portal>
+      </HoverCard.Root>
     </span>
   );
 };

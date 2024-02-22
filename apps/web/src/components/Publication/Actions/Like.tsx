@@ -1,57 +1,61 @@
 import type { ApolloCache } from '@apollo/client';
+import type { MirrorablePublication, ReactionRequest } from '@hey/lens';
+import type { FC } from 'react';
+
 import { HeartIcon } from '@heroicons/react/24/outline';
 import { HeartIcon as HeartIconSolid } from '@heroicons/react/24/solid';
 import { Errors } from '@hey/data/errors';
 import { PUBLICATION } from '@hey/data/tracking';
-import type { AnyPublication, ReactionRequest } from '@hey/lens';
 import {
   PublicationReactionType,
   useAddReactionMutation,
   useRemoveReactionMutation
 } from '@hey/lens';
 import nFormatter from '@hey/lib/nFormatter';
-import { isMirrorPublication } from '@hey/lib/publicationHelpers';
 import { Tooltip } from '@hey/ui';
 import cn from '@hey/ui/cn';
 import errorToast from '@lib/errorToast';
 import { Leafwatch } from '@lib/leafwatch';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/router';
-import { type FC, useState } from 'react';
+import { useState } from 'react';
 import toast from 'react-hot-toast';
+import { useProfileRestriction } from 'src/store/non-persisted/useProfileRestriction';
 import useProfileStore from 'src/store/persisted/useProfileStore';
 
 interface LikeProps {
-  publication: AnyPublication;
+  publication: MirrorablePublication;
   showCount: boolean;
 }
 
 const Like: FC<LikeProps> = ({ publication, showCount }) => {
   const { pathname } = useRouter();
   const currentProfile = useProfileStore((state) => state.currentProfile);
-  const targetPublication = isMirrorPublication(publication)
-    ? publication?.mirrorOn
-    : publication;
+  const { isSuspended } = useProfileRestriction();
 
   const [hasReacted, setHasReacted] = useState(
-    targetPublication.operations.hasReacted
+    publication.operations.hasReacted
   );
-  const [reactions, setReactions] = useState(targetPublication.stats.reactions);
+  const [reactions, setReactions] = useState(publication.stats.reactions);
 
   const updateCache = (cache: ApolloCache<any>) => {
     cache.modify({
-      id: cache.identify(targetPublication),
       fields: {
         operations: (existingValue) => {
-          return { ...existingValue, hasReacted: !hasReacted };
+          return {
+            ...existingValue,
+            // TODO: This is a hack to make the cache update
+            'hasReacted({"request":{"type":"UPVOTE"}})': !hasReacted
+          };
         }
-      }
+      },
+      id: cache.identify(publication)
     });
     cache.modify({
-      id: cache.identify(targetPublication.stats),
       fields: {
         reactions: () => (hasReacted ? reactions - 1 : reactions + 1)
-      }
+      },
+      id: cache.identify(publication.stats)
     });
   };
 
@@ -62,15 +66,21 @@ const Like: FC<LikeProps> = ({ publication, showCount }) => {
   const getLikeSource = () => {
     if (pathname === '/') {
       return 'home_feed';
-    } else if (pathname === '/u/[username]') {
-      return 'profile_feed';
-    } else if (pathname === '/explore') {
-      return 'explore_feed';
-    } else if (pathname === '/posts/[id]') {
-      return 'post_page';
-    } else {
-      return;
     }
+
+    if (pathname === '/u/[username]') {
+      return 'profile_feed';
+    }
+
+    if (pathname === '/explore') {
+      return 'explore_feed';
+    }
+
+    if (pathname === '/posts/[id]') {
+      return 'post_page';
+    }
+
+    return;
   };
 
   const eventProperties = {
@@ -79,9 +89,7 @@ const Like: FC<LikeProps> = ({ publication, showCount }) => {
   };
 
   const [addReaction] = useAddReactionMutation({
-    onCompleted: () => {
-      Leafwatch.track(PUBLICATION.LIKE, eventProperties);
-    },
+    onCompleted: () => Leafwatch.track(PUBLICATION.LIKE, eventProperties),
     onError: (error) => {
       setHasReacted(!hasReacted);
       setReactions(reactions - 1);
@@ -105,10 +113,14 @@ const Like: FC<LikeProps> = ({ publication, showCount }) => {
       return toast.error(Errors.SignWallet);
     }
 
+    if (isSuspended) {
+      return toast.error(Errors.Suspended);
+    }
+
     // Variables
     const request: ReactionRequest = {
-      reaction: PublicationReactionType.Upvote,
-      for: targetPublication.id
+      for: publication.id,
+      reaction: PublicationReactionType.Upvote
     };
 
     if (hasReacted) {
@@ -134,19 +146,19 @@ const Like: FC<LikeProps> = ({ publication, showCount }) => {
       )}
     >
       <motion.button
+        aria-label="Like"
         className={cn(
           hasReacted
             ? 'hover:bg-brand-300/20 outline-brand-500'
             : 'outline-gray-400 hover:bg-gray-300/20',
           'rounded-full p-1.5 outline-offset-2'
         )}
-        whileTap={{ scale: 0.9 }}
         onClick={createLike}
-        aria-label="Like"
+        whileTap={{ scale: 0.9 }}
       >
         <Tooltip
-          placement="top"
           content={hasReacted ? 'Unlike' : 'Like'}
+          placement="top"
           withDelay
         >
           {hasReacted ? (

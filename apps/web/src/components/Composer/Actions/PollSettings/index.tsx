@@ -1,29 +1,34 @@
+import type { FC } from 'react';
+
 import { Bars3BottomLeftIcon } from '@heroicons/react/24/solid';
 import { Tooltip } from '@hey/ui';
 import { motion } from 'framer-motion';
-import { type FC } from 'react';
-import { usePublicationStore } from 'src/store/non-persisted/usePublicationStore';
+import { usePublicationPollStore } from 'src/store/non-persisted/publication/usePublicationPollStore';
 
 const PollSettings: FC = () => {
-  const showPollEditor = usePublicationStore((state) => state.showPollEditor);
-  const setShowPollEditor = usePublicationStore(
+  const showPollEditor = usePublicationPollStore(
+    (state) => state.showPollEditor
+  );
+  const setShowPollEditor = usePublicationPollStore(
     (state) => state.setShowPollEditor
   );
-  const resetPollConfig = usePublicationStore((state) => state.resetPollConfig);
+  const resetPollConfig = usePublicationPollStore(
+    (state) => state.resetPollConfig
+  );
 
   return (
-    <Tooltip placement="top" content="Poll">
+    <Tooltip content="Poll" placement="top">
       <motion.button
+        aria-label="Poll"
         className="outline-brand-500 rounded-full outline-offset-8"
-        whileTap={{ scale: 0.9 }}
-        type="button"
         onClick={() => {
           resetPollConfig();
           setShowPollEditor(!showPollEditor);
         }}
-        aria-label="Poll"
+        type="button"
+        whileTap={{ scale: 0.9 }}
       >
-        <Bars3BottomLeftIcon className="text-brand-500 h-5 w-5" />
+        <Bars3BottomLeftIcon className="text-brand-500 size-5" />
       </motion.button>
     </Tooltip>
   );

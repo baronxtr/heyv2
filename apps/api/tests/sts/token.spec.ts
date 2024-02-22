@@ -1,12 +1,13 @@
-import { TEST_ENDPOINT } from '@utils/constants';
 import axios from 'axios';
-import urlcat from 'urlcat';
+import { TEST_URL } from 'src/lib/constants';
 import { describe, expect, test } from 'vitest';
 
 describe('sts/token', () => {
-  test('should return token', async () => {
-    const { data } = await axios.get(urlcat(TEST_ENDPOINT, '/sts/token'));
-    expect(data.success).toBeTruthy();
-    expect(data.sessionToken).contains('eyJh');
+  test('should return sts token', async () => {
+    const response = await axios.get(`${TEST_URL}/sts/token`);
+
+    expect(response.data).toHaveProperty('accessKeyId');
+    expect(response.data).toHaveProperty('secretAccessKey');
+    expect(response.data).toHaveProperty('sessionToken');
   });
 });

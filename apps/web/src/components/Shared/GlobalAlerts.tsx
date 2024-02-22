@@ -1,17 +1,18 @@
-import ModAction from '@components/Publication/Actions/ModAction';
-import { Alert } from '@hey/ui';
 import type { FC } from 'react';
+
+import GardenerActions from '@components/Publication/Actions/GardenerActions';
+import { Alert } from '@hey/ui';
 import { useGlobalAlertStateStore } from 'src/store/non-persisted/useGlobalAlertStateStore';
 
 import BlockOrUnBlockProfile from './Alert/BlockOrUnBlockProfile';
 import DeletePublication from './Alert/DeletePublication';
 
 const GlobalAlerts: FC = () => {
-  const showModActionAlert = useGlobalAlertStateStore(
-    (state) => state.showModActionAlert
+  const showGardenerActionsAlert = useGlobalAlertStateStore(
+    (state) => state.showGardenerActionsAlert
   );
-  const setShowModActionAlert = useGlobalAlertStateStore(
-    (state) => state.setShowModActionAlert
+  const setShowGardenerActionsAlert = useGlobalAlertStateStore(
+    (state) => state.setShowGardenerActionsAlert
   );
   const modingPublication = useGlobalAlertStateStore(
     (state) => state.modingPublication
@@ -25,12 +26,12 @@ const GlobalAlerts: FC = () => {
       <DeletePublication />
       {modingPublication ? (
         <Alert
-          show={showModActionAlert}
-          title="Mod actions"
           description="Perform mod actions on this publication."
-          onClose={() => setShowModActionAlert(false, null)}
+          onClose={() => setShowGardenerActionsAlert(false, null)}
+          show={showGardenerActionsAlert}
+          title="Mod actions"
         >
-          <ModAction publication={modingPublication} />
+          <GardenerActions publication={modingPublication} />
         </Alert>
       ) : null}
       {blockingorUnblockingProfile ? <BlockOrUnBlockProfile /> : null}

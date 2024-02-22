@@ -1,19 +1,18 @@
 import { APP_NAME } from '@hey/data/constants';
-import getEmbed from '@hey/lib/embeds/getEmbed';
-import getURLs from '@hey/lib/getURLs';
-import getNft from '@hey/lib/nft/getNft';
 import {
   audio,
-  embed,
   image,
   liveStream,
-  mint,
   textOnly,
   video
 } from '@lens-protocol/metadata';
 import getUserLocale from '@lib/getUserLocale';
 import { useCallback } from 'react';
-import { usePublicationStore } from 'src/store/non-persisted/usePublicationStore';
+import { usePublicationAttachmentStore } from 'src/store/non-persisted/publication/usePublicationAttachmentStore';
+import { usePublicationAudioStore } from 'src/store/non-persisted/publication/usePublicationAudioStore';
+import { usePublicationLicenseStore } from 'src/store/non-persisted/publication/usePublicationLicenseStore';
+import { usePublicationLiveStore } from 'src/store/non-persisted/publication/usePublicationLiveStore';
+import { usePublicationVideoStore } from 'src/store/non-persisted/publication/usePublicationVideoStore';
 import { v4 as uuid } from 'uuid';
 
 interface UsePublicationMetadataProps {
@@ -21,21 +20,25 @@ interface UsePublicationMetadataProps {
 }
 
 const usePublicationMetadata = () => {
-  const attachments = usePublicationStore((state) => state.attachments);
-  const audioPublication = usePublicationStore(
-    (state) => state.audioPublication
-  );
-  const videoThumbnail = usePublicationStore((state) => state.videoThumbnail);
-  const videoDurationInSeconds = usePublicationStore(
+  const videoDurationInSeconds = usePublicationVideoStore(
     (state) => state.videoDurationInSeconds
   );
-  const publicationContent = usePublicationStore(
-    (state) => state.publicationContent
+  const videoThumbnail = usePublicationVideoStore(
+    (state) => state.videoThumbnail
   );
-  const showLiveVideoEditor = usePublicationStore(
+  const audioPublication = usePublicationAudioStore(
+    (state) => state.audioPublication
+  );
+  const license = usePublicationLicenseStore((state) => state.license);
+  const attachments = usePublicationAttachmentStore(
+    (state) => state.attachments
+  );
+  const liveVideoConfig = usePublicationLiveStore(
+    (state) => state.liveVideoConfig
+  );
+  const showLiveVideoEditor = usePublicationLiveStore(
     (state) => state.showLiveVideoEditor
   );
-  const liveVideoConfig = usePublicationStore((state) => state.liveVideoConfig);
 
   const attachmentsHasAudio = attachments[0]?.type === 'Audio';
   const attachmentsHasVideo = attachments[0]?.type === 'Video';
@@ -48,43 +51,25 @@ const usePublicationMetadata = () => {
 
   const getMetadata = useCallback(
     ({ baseMetadata }: UsePublicationMetadataProps) => {
-      const urls = getURLs(publicationContent);
-
       const hasAttachments = attachments.length;
       const isImage = attachments[0]?.type === 'Image';
       const isAudio = attachments[0]?.type === 'Audio';
       const isVideo = attachments[0]?.type === 'Video';
-      const isMint = Boolean(getNft(urls)?.mintLink);
-      const isEmbed = Boolean(getEmbed(urls)?.embed);
       const isLiveStream = Boolean(showLiveVideoEditor && liveVideoConfig.id);
 
       const localBaseMetadata = {
+        appId: APP_NAME,
         id: uuid(),
-        locale: getUserLocale(),
-        appId: APP_NAME
+        locale: getUserLocale()
       };
 
       const attachmentsToBeUploaded = attachments.map((attachment) => ({
+        cover: cover,
         item: attachment.uri,
-        type: attachment.mimeType,
-        cover: cover
+        type: attachment.mimeType
       }));
 
       switch (true) {
-        case isMint:
-          return mint({
-            ...baseMetadata,
-            ...localBaseMetadata,
-            ...(hasAttachments && { attachments: attachmentsToBeUploaded }),
-            mintLink: getNft(urls)?.mintLink
-          });
-        case isEmbed:
-          return embed({
-            ...baseMetadata,
-            ...localBaseMetadata,
-            ...(hasAttachments && { attachments: attachmentsToBeUploaded }),
-            embed: getEmbed(urls)?.embed
-          });
         case isLiveStream:
           return liveStream({
             ...baseMetadata,
@@ -102,34 +87,36 @@ const usePublicationMetadata = () => {
           return image({
             ...baseMetadata,
             ...localBaseMetadata,
+            attachments: attachmentsToBeUploaded,
             image: {
               item: attachments[0]?.uri,
               type: attachments[0]?.mimeType
-            },
-            attachments: attachmentsToBeUploaded
+            }
           });
         case isAudio:
           return audio({
             ...baseMetadata,
             ...localBaseMetadata,
+            attachments: attachmentsToBeUploaded,
             audio: {
+              artist: audioPublication.artist,
+              cover: audioPublication.cover,
               item: attachments[0]?.uri,
               type: attachments[0]?.mimeType,
-              artist: audioPublication.artist,
-              cover: audioPublication.cover
-            },
-            attachments: attachmentsToBeUploaded
+              ...(license && { license })
+            }
           });
         case isVideo:
           return video({
             ...baseMetadata,
             ...localBaseMetadata,
+            attachments: attachmentsToBeUploaded,
             video: {
+              duration: parseInt(videoDurationInSeconds),
               item: attachments[0]?.uri,
               type: attachments[0]?.mimeType,
-              duration: parseInt(videoDurationInSeconds)
-            },
-            attachments: attachmentsToBeUploaded
+              ...(license && { license })
+            }
           });
         default:
           return null;
@@ -140,9 +127,9 @@ const usePublicationMetadata = () => {
       videoDurationInSeconds,
       audioPublication,
       cover,
-      publicationContent,
       showLiveVideoEditor,
-      liveVideoConfig
+      liveVideoConfig,
+      license
     ]
   );
 

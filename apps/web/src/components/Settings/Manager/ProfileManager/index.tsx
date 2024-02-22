@@ -1,14 +1,16 @@
+import type { FC } from 'react';
+
 import { PlusCircleIcon } from '@heroicons/react/24/outline';
 import { Button, Card, Modal, TabButton } from '@hey/ui';
-import { type FC, useState } from 'react';
+import { useState } from 'react';
 
 import AddProfileManager from './AddProfileManager';
 import Managed from './Managed';
 import Managers from './Managers';
 
 enum Type {
-  MANAGERS = 'MANAGERS',
-  MANAGED = 'MANAGED'
+  MANAGED = 'MANAGED',
+  MANAGERS = 'MANAGERS'
 }
 
 const ProfileManager: FC = () => {
@@ -20,14 +22,14 @@ const ProfileManager: FC = () => {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <TabButton
-            name="Managers"
             active={type === Type.MANAGERS}
+            name="Managers"
             onClick={() => setType(Type.MANAGERS)}
             showOnSm
           />
           <TabButton
-            name="Managed"
             active={type === Type.MANAGED}
+            name="Managed"
             onClick={() => setType(Type.MANAGED)}
             showOnSm
           />
@@ -35,15 +37,15 @@ const ProfileManager: FC = () => {
         {type === Type.MANAGERS && (
           <>
             <Button
-              icon={<PlusCircleIcon className="h-4 w-4" />}
+              icon={<PlusCircleIcon className="size-4" />}
               onClick={() => setShowAddManagerModal(true)}
             >
               Add manager
             </Button>
             <Modal
+              onClose={() => setShowAddManagerModal(false)}
               show={showAddManagerModal}
               title="Add Profile Manager"
-              onClose={() => setShowAddManagerModal(false)}
             >
               <AddProfileManager
                 setShowAddManagerModal={setShowAddManagerModal}

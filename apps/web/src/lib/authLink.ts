@@ -1,5 +1,5 @@
 import { ApolloLink, fromPromise, toPromise } from '@apollo/client';
-import { API_URL } from '@hey/data/constants';
+import { LENS_API_URL } from '@hey/data/constants';
 import parseJwt from '@hey/lib/parseJwt';
 import axios from 'axios';
 import {
@@ -7,6 +7,7 @@ import {
   signIn,
   signOut
 } from 'src/store/persisted/useAuthStore';
+import { v4 as uuid } from 'uuid';
 
 const REFRESH_AUTHENTICATION_MUTATION = `
   mutation Refresh($request: RefreshRequest!) {
@@ -19,6 +20,14 @@ const REFRESH_AUTHENTICATION_MUTATION = `
 
 const authLink = new ApolloLink((operation, forward) => {
   const { accessToken, refreshToken } = hydrateAuthTokens();
+
+  // Set Request ID
+  operation.setContext(({ headers = {} }) => ({
+    headers: {
+      ...headers,
+      'x-request-id': uuid()
+    }
+  }));
 
   if (!accessToken || !refreshToken) {
     signOut();
@@ -40,7 +49,7 @@ const authLink = new ApolloLink((operation, forward) => {
   return fromPromise(
     axios
       .post(
-        API_URL,
+        LENS_API_URL,
         {
           operationName: 'Refresh',
           query: REFRESH_AUTHENTICATION_MUTATION,

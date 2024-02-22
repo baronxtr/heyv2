@@ -1,7 +1,10 @@
+import type { BlockRequest, UnblockRequest } from '@hey/lens';
+import type { ApolloCache } from '@hey/lens/apollo';
+import type { FC } from 'react';
+
 import { LensHub } from '@hey/abis';
 import { LENSHUB_PROXY } from '@hey/data/constants';
 import { PROFILE } from '@hey/data/tracking';
-import type { BlockRequest, UnblockRequest } from '@hey/lens';
 import {
   useBlockMutation,
   useBroadcastOnchainMutation,
@@ -9,20 +12,19 @@ import {
   useCreateUnblockProfilesTypedDataMutation,
   useUnblockMutation
 } from '@hey/lens';
-import type { ApolloCache } from '@hey/lens/apollo';
 import checkDispatcherPermissions from '@hey/lib/checkDispatcherPermissions';
 import getProfile from '@hey/lib/getProfile';
 import getSignature from '@hey/lib/getSignature';
 import { Alert } from '@hey/ui';
 import errorToast from '@lib/errorToast';
 import { Leafwatch } from '@lib/leafwatch';
-import { type FC, useState } from 'react';
+import { useState } from 'react';
 import { toast } from 'react-hot-toast';
 import useHandleWrongNetwork from 'src/hooks/useHandleWrongNetwork';
 import { useGlobalAlertStateStore } from 'src/store/non-persisted/useGlobalAlertStateStore';
 import { useNonceStore } from 'src/store/non-persisted/useNonceStore';
 import useProfileStore from 'src/store/persisted/useProfileStore';
-import { useContractWrite, useSignTypedData } from 'wagmi';
+import { useSignTypedData, useWriteContract } from 'wagmi';
 
 const BlockOrUnBlockProfile: FC = () => {
   const currentProfile = useProfileStore((state) => state.currentProfile);
@@ -48,22 +50,22 @@ const BlockOrUnBlockProfile: FC = () => {
   );
 
   const handleWrongNetwork = useHandleWrongNetwork();
-  const { canUseLensManager, canBroadcast } =
+  const { canBroadcast, canUseLensManager } =
     checkDispatcherPermissions(currentProfile);
 
   const updateCache = (cache: ApolloCache<any>) => {
     cache.modify({
-      id: `ProfileOperations:${blockingorUnblockingProfile?.id}`,
       fields: {
         isBlockedByMe: (existingValue) => {
           return { ...existingValue, value: !hasBlocked };
         }
-      }
+      },
+      id: `ProfileOperations:${blockingorUnblockingProfile?.id}`
     });
   };
 
   const onCompleted = (
-    __typename?: 'RelayError' | 'RelaySuccess' | 'LensProfileManagerRelayError'
+    __typename?: 'LensProfileManagerRelayError' | 'RelayError' | 'RelaySuccess'
   ) => {
     if (
       __typename === 'RelayError' ||
@@ -76,7 +78,7 @@ const BlockOrUnBlockProfile: FC = () => {
     setHasBlocked(!hasBlocked);
     setShowBlockOrUnblockAlert(false, null);
     toast.success(
-      hasBlocked ? 'Blocked successfully!' : 'Unblocked successfully!'
+      hasBlocked ? 'Unblocked successfully!' : 'Blocked successfully!'
     );
     Leafwatch.track(hasBlocked ? PROFILE.BLOCK : PROFILE.UNBLOCK, {
       profile_id: blockingorUnblockingProfile?.id
@@ -88,14 +90,19 @@ const BlockOrUnBlockProfile: FC = () => {
     errorToast(error);
   };
 
-  const { signTypedDataAsync } = useSignTypedData({ onError });
-  const { write } = useContractWrite({
-    address: LENSHUB_PROXY,
-    abi: LensHub,
-    functionName: 'setBlockStatus',
-    onSuccess: () => onCompleted(),
-    onError
+  const { signTypedDataAsync } = useSignTypedData({ mutation: { onError } });
+  const { writeContractAsync } = useWriteContract({
+    mutation: { onError, onSuccess: () => onCompleted() }
   });
+
+  const write = async ({ args }: { args: any[] }) => {
+    return await writeContractAsync({
+      abi: LensHub,
+      address: LENSHUB_PROXY,
+      args,
+      functionName: 'setBlockStatus'
+    });
+  };
 
   const [broadcastOnchain] = useBroadcastOnchainMutation({
     onCompleted: ({ broadcastOnchain }) =>
@@ -104,20 +111,22 @@ const BlockOrUnBlockProfile: FC = () => {
 
   const typedDataGenerator = async (generatedData: any) => {
     const { id, typedData } = generatedData;
-    const signature = await signTypedDataAsync(getSignature(typedData));
+    await handleWrongNetwork();
     setLensHubOnchainSigNonce(lensHubOnchainSigNonce + 1);
 
     if (canBroadcast) {
+      const signature = await signTypedDataAsync(getSignature(typedData));
       const { data } = await broadcastOnchain({
         variables: { request: { id, signature } }
       });
       if (data?.broadcastOnchain.__typename === 'RelayError') {
-        return write({ args: [typedData.value] });
+        return await write({ args: [typedData.value] });
       }
+
       return;
     }
 
-    return write({ args: [typedData.value] });
+    return await write({ args: [typedData.value] });
   };
 
   const [createBlockProfilesTypedData] =
@@ -169,10 +178,6 @@ const BlockOrUnBlockProfile: FC = () => {
       return;
     }
 
-    if (handleWrongNetwork()) {
-      return;
-    }
-
     try {
       setIsLoading(true);
       const request: BlockRequest | UnblockRequest = {
@@ -211,16 +216,16 @@ const BlockOrUnBlockProfile: FC = () => {
 
   return (
     <Alert
-      title="Block Profile"
+      confirmText={hasBlocked ? 'Unblock' : 'Block'}
       description={`Are you sure you want to ${
         hasBlocked ? 'un-block' : 'block'
       } ${getProfile(blockingorUnblockingProfile).slugWithPrefix}?`}
-      confirmText={hasBlocked ? 'Unblock' : 'Block'}
-      show={showBlockOrUnblockAlert}
       isDestructive
       isPerformingAction={isLoading}
-      onConfirm={blockOrUnblock}
       onClose={() => setShowBlockOrUnblockAlert(false, null)}
+      onConfirm={blockOrUnblock}
+      show={showBlockOrUnblockAlert}
+      title="Block Profile"
     />
   );
 };

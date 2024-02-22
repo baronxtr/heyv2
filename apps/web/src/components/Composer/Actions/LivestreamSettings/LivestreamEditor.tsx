@@ -1,3 +1,5 @@
+import type { FC, ReactNode } from 'react';
+
 import Video from '@components/Shared/Video';
 import {
   ClipboardDocumentIcon,
@@ -8,12 +10,11 @@ import {
 import { XCircleIcon } from '@heroicons/react/24/solid';
 import { HEY_API_URL } from '@hey/data/constants';
 import { Card, Spinner, Tooltip } from '@hey/ui';
-import getAuthWorkerHeaders from '@lib/getAuthWorkerHeaders';
+import getAuthApiHeaders from '@lib/getAuthApiHeaders';
 import axios from 'axios';
-import type { FC, ReactNode } from 'react';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
-import { usePublicationStore } from 'src/store/non-persisted/usePublicationStore';
+import { usePublicationLiveStore } from 'src/store/non-persisted/publication/usePublicationLiveStore';
 
 interface WrapperProps {
   children: ReactNode;
@@ -28,14 +29,16 @@ const Wrapper: FC<WrapperProps> = ({ children }) => {
 };
 
 const LivestreamEditor: FC = () => {
-  const liveVideoConfig = usePublicationStore((state) => state.liveVideoConfig);
-  const setLiveVideoConfig = usePublicationStore(
+  const liveVideoConfig = usePublicationLiveStore(
+    (state) => state.liveVideoConfig
+  );
+  const setLiveVideoConfig = usePublicationLiveStore(
     (state) => state.setLiveVideoConfig
   );
-  const setShowLiveVideoEditor = usePublicationStore(
+  const setShowLiveVideoEditor = usePublicationLiveStore(
     (state) => state.setShowLiveVideoEditor
   );
-  const resetLiveVideoConfig = usePublicationStore(
+  const resetLiveVideoConfig = usePublicationLiveStore(
     (state) => state.resetLiveVideoConfig
   );
 
@@ -46,9 +49,9 @@ const LivestreamEditor: FC = () => {
     try {
       setCreating(true);
       const response = await axios.post(
-        `${HEY_API_URL}/live/createStream`,
+        `${HEY_API_URL}/live/create`,
         { record },
-        { headers: getAuthWorkerHeaders() }
+        { headers: getAuthApiHeaders() }
       );
       const { data } = response;
       setLiveVideoConfig({
@@ -67,19 +70,20 @@ const LivestreamEditor: FC = () => {
     <Card className="m-5 px-5 py-3" forceRounded>
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2 text-sm">
-          <VideoCameraIcon className="text-brand-500 h-4 w-4" />
+          <VideoCameraIcon className="text-brand-500 size-4" />
           <b>Go Live</b>
         </div>
         <div className="flex items-center space-x-3">
-          <Tooltip placement="top" content="Delete">
+          <Tooltip content="Delete" placement="top">
             <button
               className="flex"
               onClick={() => {
                 resetLiveVideoConfig();
                 setShowLiveVideoEditor(false);
               }}
+              type="button"
             >
-              <XCircleIcon className="h-5 w-5 text-red-400" />
+              <XCircleIcon className="size-5 text-red-400" />
             </button>
           </Tooltip>
         </div>
@@ -103,8 +107,9 @@ const LivestreamEditor: FC = () => {
                     );
                     toast.success('Copied to clipboard!');
                   }}
+                  type="button"
                 >
-                  <ClipboardDocumentIcon className="h-4 w-4 text-gray-400" />
+                  <ClipboardDocumentIcon className="size-4 text-gray-400" />
                 </button>
               </div>
               <div className="flex items-center space-x-1">
@@ -117,8 +122,9 @@ const LivestreamEditor: FC = () => {
                     );
                     toast.success('Copied to clipboard!');
                   }}
+                  type="button"
                 >
-                  <ClipboardDocumentIcon className="h-4 w-4 text-gray-400" />
+                  <ClipboardDocumentIcon className="size-4 text-gray-400" />
                 </button>
               </div>
             </Card>
@@ -127,23 +133,35 @@ const LivestreamEditor: FC = () => {
             />
           </>
         ) : screen === 'create' ? (
-          <button className="w-full" onClick={() => setScreen('record')}>
+          <button
+            className="w-full"
+            onClick={() => setScreen('record')}
+            type="button"
+          >
             <Wrapper>
-              <SignalIcon className="text-brand-500 h-5 w-5" />
+              <SignalIcon className="text-brand-500 size-5" />
               <div>Create Live Stream</div>
             </Wrapper>
           </button>
         ) : (
           <div className="flex items-center space-x-3">
-            <button className="w-full" onClick={() => createLiveStream(true)}>
+            <button
+              className="w-full"
+              onClick={() => createLiveStream(true)}
+              type="button"
+            >
               <Wrapper>
-                <VideoCameraIcon className="text-brand-500 h-5 w-5" />
+                <VideoCameraIcon className="text-brand-500 size-5" />
                 <div>Record</div>
               </Wrapper>
             </button>
-            <button className="w-full" onClick={() => createLiveStream(false)}>
+            <button
+              className="w-full"
+              onClick={() => createLiveStream(false)}
+              type="button"
+            >
               <Wrapper>
-                <VideoCameraSlashIcon className="text-brand-500 h-5 w-5" />
+                <VideoCameraSlashIcon className="text-brand-500 size-5" />
                 <div>Don't Record</div>
               </Wrapper>
             </button>

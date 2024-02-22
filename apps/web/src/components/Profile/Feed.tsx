@@ -1,31 +1,32 @@
+import type { AnyPublication, PublicationsRequest } from '@hey/lens';
+import type { FC } from 'react';
+
 import SinglePublication from '@components/Publication/SinglePublication';
 import PublicationsShimmer from '@components/Shared/Shimmer/PublicationsShimmer';
 import { RectangleStackIcon } from '@heroicons/react/24/outline';
-import type { AnyPublication, Profile, PublicationsRequest } from '@hey/lens';
 import {
   LimitType,
   PublicationMetadataMainFocusType,
   PublicationType,
   usePublicationsQuery
 } from '@hey/lens';
-import getProfile from '@hey/lib/getProfile';
 import { Card, EmptyState, ErrorMessage } from '@hey/ui';
-import { type FC } from 'react';
 import { useInView } from 'react-cool-inview';
 import { ProfileFeedType } from 'src/enums';
 import { useImpressionsStore } from 'src/store/non-persisted/useImpressionsStore';
 import { useProfileFeedStore } from 'src/store/non-persisted/useProfileFeedStore';
 
 interface FeedProps {
-  profile: Profile;
+  handle: string;
+  profileId: string;
   type:
+    | ProfileFeedType.Collects
     | ProfileFeedType.Feed
-    | ProfileFeedType.Replies
     | ProfileFeedType.Media
-    | ProfileFeedType.Collects;
+    | ProfileFeedType.Replies;
 }
 
-const Feed: FC<FeedProps> = ({ profile, type }) => {
+const Feed: FC<FeedProps> = ({ handle, profileId, type }) => {
   const mediaFeedFilters = useProfileFeedStore(
     (state) => state.mediaFeedFilters
   );
@@ -34,7 +35,7 @@ const Feed: FC<FeedProps> = ({ profile, type }) => {
   );
 
   const getMediaFilters = () => {
-    let filters: PublicationMetadataMainFocusType[] = [];
+    const filters: PublicationMetadataMainFocusType[] = [];
     if (mediaFeedFilters.images) {
       filters.push(PublicationMetadataMainFocusType.Image);
     }
@@ -69,26 +70,26 @@ const Feed: FC<FeedProps> = ({ profile, type }) => {
       ? { mainContentFocus: getMediaFilters() }
       : null;
   const request: PublicationsRequest = {
+    limit: LimitType.TwentyFive,
     where: {
-      publicationTypes,
       metadata,
+      publicationTypes,
       ...(type !== ProfileFeedType.Collects
-        ? { from: profile?.id }
-        : { actedBy: profile?.id })
-    },
-    limit: LimitType.TwentyFive
+        ? { from: [profileId] }
+        : { actedBy: profileId })
+    }
   };
 
-  const { data, loading, error, fetchMore } = usePublicationsQuery({
-    variables: { request },
-    skip: !profile?.id,
+  const { data, error, fetchMore, loading } = usePublicationsQuery({
     onCompleted: async ({ publications }) => {
       const ids =
         publications?.items?.map((p) => {
           return p.__typename === 'Mirror' ? p.mirrorOn?.id : p.id;
         }) || [];
       await fetchAndStoreViews(ids);
-    }
+    },
+    skip: !profileId,
+    variables: { request }
   });
 
   const publications = data?.publications?.items;
@@ -130,30 +131,28 @@ const Feed: FC<FeedProps> = ({ profile, type }) => {
 
     return (
       <EmptyState
+        icon={<RectangleStackIcon className="text-brand-500 size-8" />}
         message={
           <div>
-            <span className="mr-1 font-bold">
-              {getProfile(profile).slugWithPrefix}
-            </span>
+            <span className="mr-1 font-bold">{handle}</span>
             <span>{emptyMessage}</span>
           </div>
         }
-        icon={<RectangleStackIcon className="text-brand-500 h-8 w-8" />}
       />
     );
   }
 
   if (error) {
-    return <ErrorMessage title="Failed to load profile feed" error={error} />;
+    return <ErrorMessage error={error} title="Failed to load profile feed" />;
   }
 
   return (
     <Card className="divide-y-[1px] dark:divide-gray-700">
       {publications?.map((publication, index) => (
         <SinglePublication
-          key={`${publication.id}_${index}`}
           isFirst={index === 0}
           isLast={index === publications.length - 1}
+          key={`${publication.id}_${index}`}
           publication={publication as AnyPublication}
           showThread={
             type !== ProfileFeedType.Media && type !== ProfileFeedType.Collects

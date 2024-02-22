@@ -1,44 +1,40 @@
+import type { Profile } from '@hey/lens';
+import type { FC, ReactNode } from 'react';
+
 import Markup from '@components/Shared/Markup';
 import Follow from '@components/Shared/Profile/Follow';
 import Unfollow from '@components/Shared/Profile/Unfollow';
 import Slug from '@components/Shared/Slug';
 import SuperFollow from '@components/Shared/SuperFollow';
-import ProfileStaffTool from '@components/StaffTools/Panels/Profile';
 import {
+  ClockIcon,
   Cog6ToothIcon,
   HashtagIcon,
   MapPinIcon,
+  ShieldCheckIcon,
   UsersIcon
 } from '@heroicons/react/24/outline';
 import {
   CheckBadgeIcon,
   ExclamationCircleIcon
 } from '@heroicons/react/24/solid';
-import {
-  EXPANDED_AVATAR,
-  RARIBLE_URL,
-  STATIC_IMAGES_URL
-} from '@hey/data/constants';
-import { FeatureFlag } from '@hey/data/feature-flags';
-import { FollowUnfollowSource } from '@hey/data/tracking';
-import getEnvConfig from '@hey/data/utils/getEnvConfig';
-import type { Profile } from '@hey/lens';
+import { EXPANDED_AVATAR, STATIC_IMAGES_URL } from '@hey/data/constants';
 import { FollowModuleType } from '@hey/lens';
+import formatDate from '@hey/lib/datetime/formatDate';
 import getAvatar from '@hey/lib/getAvatar';
 import getFavicon from '@hey/lib/getFavicon';
+import getLennyURL from '@hey/lib/getLennyURL';
 import getMentions from '@hey/lib/getMentions';
 import getMisuseDetails from '@hey/lib/getMisuseDetails';
 import getProfile from '@hey/lib/getProfile';
 import getProfileAttribute from '@hey/lib/getProfileAttribute';
 import hasMisused from '@hey/lib/hasMisused';
 import { Button, Image, LightBox, Modal, Tooltip } from '@hey/ui';
-import isFeatureEnabled from '@lib/isFeatureEnabled';
 import isVerified from '@lib/isVerified';
-import Link from 'next/link';
 import { useTheme } from 'next-themes';
-import type { FC, ReactNode } from 'react';
+import Link from 'next/link';
 import { useState } from 'react';
-import { useFeatureFlagsStore } from 'src/store/non-persisted/useFeatureFlagsStore';
+import { useFeatureFlagsStore } from 'src/store/persisted/useFeatureFlagsStore';
 import useProfileStore from 'src/store/persisted/useProfileStore';
 import urlcat from 'urlcat';
 
@@ -49,19 +45,18 @@ import ProfileMenu from './Menu';
 import MutualFollowers from './MutualFollowers';
 import MutualFollowersList from './MutualFollowers/List';
 import ScamWarning from './ScamWarning';
+import TbaBadge from './TbaBadge';
 
 interface DetailsProps {
   profile: Profile;
-  following: boolean;
-  setFollowing: (following: boolean) => void;
 }
 
-const Details: FC<DetailsProps> = ({ profile, following, setFollowing }) => {
+const Details: FC<DetailsProps> = ({ profile }) => {
   const currentProfile = useProfileStore((state) => state.currentProfile);
   const staffMode = useFeatureFlagsStore((state) => state.staffMode);
   const [showMutualFollowersModal, setShowMutualFollowersModal] =
     useState(false);
-  const [expandedImage, setExpandedImage] = useState<string | null>(null);
+  const [expandedImage, setExpandedImage] = useState<null | string>(null);
   const { resolvedTheme } = useTheme();
 
   const MetaDetails = ({
@@ -82,19 +77,22 @@ const Details: FC<DetailsProps> = ({ profile, following, setFollowing }) => {
 
   return (
     <div className="mb-4 space-y-5 px-5 sm:px-0">
-      <div className="relative -mt-24 h-32 w-32 sm:-mt-32 sm:h-52 sm:w-52">
+      <div className="relative -mt-24 size-32 sm:-mt-32 sm:size-52">
         <Image
-          onClick={() => setExpandedImage(getAvatar(profile, EXPANDED_AVATAR))}
-          src={getAvatar(profile)}
-          className="h-32 w-32 cursor-pointer rounded-xl bg-gray-200 ring-8 ring-gray-50 dark:bg-gray-700 dark:ring-black sm:h-52 sm:w-52"
-          height={128}
-          width={128}
           alt={profile.id}
+          className="size-32 cursor-pointer rounded-xl bg-gray-200 ring-8 ring-gray-50 sm:size-52 dark:bg-gray-700 dark:ring-black"
+          height={128}
+          onClick={() => setExpandedImage(getAvatar(profile, EXPANDED_AVATAR))}
+          onError={({ currentTarget }) => {
+            currentTarget.src = getLennyURL(profile.id);
+          }}
+          src={getAvatar(profile)}
+          width={128}
         />
         <LightBox
+          onClose={() => setExpandedImage(null)}
           show={Boolean(expandedImage)}
           url={expandedImage}
-          onClose={() => setExpandedImage(null)}
         />
       </div>
       <div className="space-y-1 py-2">
@@ -102,12 +100,13 @@ const Details: FC<DetailsProps> = ({ profile, following, setFollowing }) => {
           <div className="truncate">{getProfile(profile).displayName}</div>
           {isVerified(profile.id) ? (
             <Tooltip content="Verified">
-              <CheckBadgeIcon className="text-brand-500 h-6 w-6" />
+              <CheckBadgeIcon className="text-brand-500 size-6" />
             </Tooltip>
           ) : null}
+          <TbaBadge address={profile.ownedBy.address} />
           {hasMisused(profile.id) ? (
             <Tooltip content={misuseDetails?.type}>
-              <ExclamationCircleIcon className="h-6 w-6 text-red-500" />
+              <ExclamationCircleIcon className="size-6 text-red-500" />
             </Tooltip>
           ) : null}
         </div>
@@ -131,171 +130,159 @@ const Details: FC<DetailsProps> = ({ profile, following, setFollowing }) => {
         </div>
       ) : null}
       <div className="space-y-5">
-        <ScamWarning profile={profile} />
+        <ScamWarning profileId={profile.id} />
         <Followerings profile={profile} />
         <div className="flex items-center space-x-2">
           {currentProfile?.id === profile.id ? (
             <Link href="/settings">
               <Button
-                variant="secondary"
-                icon={<Cog6ToothIcon className="h-5 w-5" />}
+                icon={<Cog6ToothIcon className="size-5" />}
                 outline
+                variant="secondary"
               >
                 Edit Profile
               </Button>
             </Link>
           ) : followType !== FollowModuleType.RevertFollowModule ? (
-            following ? (
+            profile.operations.isFollowedByMe.value ? (
               <>
-                <Unfollow
-                  profile={profile}
-                  setFollowing={setFollowing}
-                  unfollowSource={FollowUnfollowSource.PROFILE_PAGE}
-                  showText
-                />
+                <Unfollow profile={profile} showText />
                 {followType === FollowModuleType.FeeFollowModule ? (
-                  <SuperFollow
-                    profile={profile}
-                    setFollowing={setFollowing}
-                    superFollowSource={FollowUnfollowSource.PROFILE_PAGE}
-                    again
-                  />
+                  <SuperFollow again profile={profile} />
                 ) : null}
               </>
             ) : followType === FollowModuleType.FeeFollowModule ? (
-              <SuperFollow
-                profile={profile}
-                setFollowing={setFollowing}
-                superFollowSource={FollowUnfollowSource.PROFILE_PAGE}
-                showText
-              />
+              <SuperFollow profile={profile} showText />
             ) : (
-              <Follow
-                profile={profile}
-                setFollowing={setFollowing}
-                followSource={FollowUnfollowSource.PROFILE_PAGE}
-                showText
-              />
+              <Follow profile={profile} showText />
             )
           ) : null}
+
           <ProfileMenu profile={profile} />
         </div>
         {currentProfile?.id !== profile.id ? (
           <>
             <MutualFollowers
+              profileId={profile.id}
               setShowMutualFollowersModal={setShowMutualFollowersModal}
-              profile={profile}
             />
             <Modal
-              title="Followers you know"
-              icon={<UsersIcon className="text-brand-500 h-5 w-5" />}
-              show={showMutualFollowersModal}
+              icon={<UsersIcon className="text-brand-500 size-5" />}
               onClose={() => setShowMutualFollowersModal(false)}
+              show={showMutualFollowersModal}
+              title="Followers you know"
             >
-              <MutualFollowersList profile={profile} />
+              <MutualFollowersList
+                handle={getProfile(profile).slugWithPrefix}
+                profileId={profile.id}
+              />
             </Modal>
           </>
         ) : null}
         <div className="divider w-full" />
         <div className="space-y-2">
-          <MetaDetails icon={<HashtagIcon className="h-4 w-4" />}>
-            <Tooltip content={`#${profile.id}`}>
+          {staffMode ? (
+            <MetaDetails
+              icon={<ShieldCheckIcon className="size-4 text-yellow-600" />}
+            >
               <Link
-                href={urlcat(RARIBLE_URL, '/token/polygon/:address::id', {
-                  address: getEnvConfig().lensHubProxyAddress,
-                  id: parseInt(profile.id)
-                })}
-                target="_blank"
-                rel="noreferrer"
+                className="text-yellow-600"
+                href={getProfile(profile).staffLink}
               >
-                {parseInt(profile.id)}
+                Open in Staff Tools
               </Link>
-            </Tooltip>
+            </MetaDetails>
+          ) : null}
+          <MetaDetails icon={<HashtagIcon className="size-4" />}>
+            {parseInt(profile.id)}
           </MetaDetails>
-          {getProfileAttribute(profile?.metadata?.attributes, 'location') ? (
-            <MetaDetails icon={<MapPinIcon className="h-4 w-4" />}>
-              {getProfileAttribute(profile?.metadata?.attributes, 'location')}
+          {getProfileAttribute('location', profile?.metadata?.attributes) ? (
+            <MetaDetails icon={<MapPinIcon className="size-4" />}>
+              {getProfileAttribute('location', profile?.metadata?.attributes)}
             </MetaDetails>
           ) : null}
           {profile?.onchainIdentity?.ens?.name ? (
             <MetaDetails
               icon={
                 <img
-                  src={`${STATIC_IMAGES_URL}/brands/ens.svg`}
-                  className="h-4 w-4"
-                  height={16}
-                  width={16}
                   alt="ENS Logo"
+                  className="size-4"
+                  height={16}
+                  src={`${STATIC_IMAGES_URL}/brands/ens.svg`}
+                  width={16}
                 />
               }
             >
               {profile?.onchainIdentity?.ens?.name}
             </MetaDetails>
           ) : null}
-          {getProfileAttribute(profile?.metadata?.attributes, 'website') ? (
+          {getProfileAttribute('website', profile?.metadata?.attributes) ? (
             <MetaDetails
               icon={
                 <img
+                  alt="Website"
+                  className="size-4 rounded-full"
+                  height={16}
                   src={getFavicon(
                     getProfileAttribute(
-                      profile?.metadata?.attributes,
-                      'website'
+                      'website',
+                      profile?.metadata?.attributes
                     )
                   )}
-                  className="h-4 w-4 rounded-full"
-                  height={16}
                   width={16}
-                  alt="Website"
                 />
               }
             >
               <Link
                 href={`https://${getProfileAttribute(
-                  profile?.metadata?.attributes,
-                  'website'
+                  'website',
+                  profile?.metadata?.attributes
                 )
                   ?.replace('https://', '')
                   .replace('http://', '')}`}
-                target="_blank"
                 rel="noreferrer noopener me"
+                target="_blank"
               >
-                {getProfileAttribute(profile?.metadata?.attributes, 'website')
+                {getProfileAttribute('website', profile?.metadata?.attributes)
                   ?.replace('https://', '')
                   .replace('http://', '')}
               </Link>
             </MetaDetails>
           ) : null}
-          {getProfileAttribute(profile?.metadata?.attributes, 'x') ? (
+          {getProfileAttribute('x', profile?.metadata?.attributes) ? (
             <MetaDetails
               icon={
                 <img
+                  alt="X Logo"
+                  className="size-4"
+                  height={16}
                   src={`${STATIC_IMAGES_URL}/brands/${
                     resolvedTheme === 'dark' ? 'x-dark.png' : 'x-light.png'
                   }`}
-                  className="h-4 w-4"
-                  height={16}
                   width={16}
-                  alt="X Logo"
                 />
               }
             >
               <Link
                 href={urlcat('https://x.com/:username', {
                   username: getProfileAttribute(
-                    profile?.metadata?.attributes,
-                    'x'
+                    'x',
+                    profile?.metadata?.attributes
                   )?.replace('https://x.com/', '')
                 })}
-                target="_blank"
                 rel="noreferrer noopener"
+                target="_blank"
               >
                 {getProfileAttribute(
-                  profile?.metadata?.attributes,
-                  'x'
+                  'x',
+                  profile?.metadata?.attributes
                 )?.replace('https://x.com/', '')}
               </Link>
             </MetaDetails>
           ) : null}
+          <MetaDetails icon={<ClockIcon className="size-4" />}>
+            Joined {formatDate(profile.createdAt)}
+          </MetaDetails>
         </div>
       </div>
       {profile.invitedBy ? (
@@ -304,10 +291,7 @@ const Details: FC<DetailsProps> = ({ profile, following, setFollowing }) => {
           <InvitedBy profile={profile.invitedBy} />
         </>
       ) : null}
-      <Badges profile={profile} />
-      {isFeatureEnabled(FeatureFlag.Staff) && staffMode ? (
-        <ProfileStaffTool profile={profile} />
-      ) : null}
+      <Badges onchainIdentity={profile.onchainIdentity} />
     </div>
   );
 };

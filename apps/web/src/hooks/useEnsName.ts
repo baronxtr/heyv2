@@ -11,22 +11,22 @@ const useEnsName = ({
   enabled
 }: UseEnsNameProps): {
   ens: string;
-  loading: boolean;
   error: unknown;
+  loading: boolean;
 } => {
   const getEnsDetails = async () => {
-    const { data } = await resolveEns([address]);
+    const { result } = await resolveEns([address]);
 
-    return data[0].length ? data[0] : address;
+    return result[0].length ? result[0] : address;
   };
 
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['ensName', address],
+  const { data, error, isLoading } = useQuery({
+    enabled,
     queryFn: getEnsDetails,
-    enabled
+    queryKey: ['ensName', address]
   });
 
-  return { ens: data, loading: isLoading, error };
+  return { ens: data, error, loading: isLoading };
 };
 
 export default useEnsName;

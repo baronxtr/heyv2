@@ -7,11 +7,11 @@ type TokenSymbolMap = Record<string, string>;
  * The addresses of commonly-used tokens on the Polygon.
  */
 const TOKEN_SYMBOLS: TokenSymbolMap = {
-  WMATIC: 'MATIC',
-  WETH: 'ETH',
-  USDC: 'USDC',
   DAI: 'DAI',
-  NCT: 'NCT'
+  USDC: 'USDC',
+  USDT: 'USDT',
+  WETH: 'ETH',
+  WMATIC: 'MATIC'
 };
 
 /**
@@ -21,7 +21,7 @@ const TOKEN_SYMBOLS: TokenSymbolMap = {
  * @returns The symbol of the token.
  */
 const getAssetSymbol = (symbol: string): string => {
-  return TOKEN_SYMBOLS[symbol] ?? 'MATIC';
+  return TOKEN_SYMBOLS[symbol] || 'MATIC';
 };
 
 export default getAssetSymbol;

@@ -1,15 +1,16 @@
+import type { MentionNotification as TMirrorNotification } from '@hey/lens';
+import type { FC } from 'react';
+
 import Markup from '@components/Shared/Markup';
 import { AtSymbolIcon } from '@heroicons/react/24/outline';
-import { MentionNotification } from '@hey/lens';
 import getPublicationData from '@hey/lib/getPublicationData';
 import Link from 'next/link';
-import type { FC } from 'react';
 
 import AggregatedNotificationTitle from '../AggregatedNotificationTitle';
 import { NotificationProfileAvatar } from '../Profile';
 
 interface MentionNotificationProps {
-  notification: MentionNotification;
+  notification: TMirrorNotification;
 }
 
 const MentionNotification: FC<MentionNotificationProps> = ({
@@ -25,7 +26,7 @@ const MentionNotification: FC<MentionNotificationProps> = ({
   return (
     <div className="space-y-2">
       <div className="flex items-center space-x-3">
-        <AtSymbolIcon className="text-brand-500/70 h-6 w-6" />
+        <AtSymbolIcon className="text-brand-500/70 size-6" />
         <div className="flex items-center space-x-1">
           <NotificationProfileAvatar profile={firstProfile} />
         </div>
@@ -33,13 +34,13 @@ const MentionNotification: FC<MentionNotificationProps> = ({
       <div className="ml-9">
         <AggregatedNotificationTitle
           firstProfile={firstProfile}
+          linkToType={`/posts/${notification?.publication?.id}`}
           text={text}
           type={type}
-          linkToType={`/posts/${notification?.publication?.id}`}
         />
         <Link
-          href={`/posts/${notification?.publication?.id}`}
           className="ld-text-gray-500 linkify mt-2 line-clamp-2"
+          href={`/posts/${notification?.publication?.id}`}
         >
           <Markup mentions={notification?.publication.profilesMentioned}>
             {filteredContent}

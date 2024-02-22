@@ -1,64 +1,69 @@
-import type { AnyPublication, Profile } from '@hey/lens';
+import type { Profile } from '@hey/lens';
+
 import { create } from 'zustand';
 
+export type AuthModalType = 'login' | 'signup';
+
 interface GlobalModalState {
-  showAuthModal: boolean;
-  setShowAuthModal: (showAuthModal: boolean) => void;
-  showWrongNetworkModal: boolean;
-  setShowWrongNetworkModal: (showWrongNetworkModal: boolean) => void;
-  showNewPostModal: boolean;
-  setShowNewPostModal: (showNewPostModal: boolean) => void;
-  showDiscardModal: boolean;
+  authModalType: AuthModalType;
+  reportingProfile: null | Profile;
+  reportingPublicationId: null | string;
+  setShowAuthModal: (
+    showAuthModal: boolean,
+    authModalType?: AuthModalType
+  ) => void;
   setShowDiscardModal: (showDiscardModal: boolean) => void;
-  showProfileSwitchModal: boolean;
-  setShowProfileSwitchModal: (showProfileSwitchModal: boolean) => void;
-  showMobileDrawer: boolean;
-  setShowMobileDrawer: (showMobileDrawer: boolean) => void;
-  showInvitesModal: boolean;
   setShowInvitesModal: (showInvitesModal: boolean) => void;
-  showPublicationReportModal: boolean;
-  reportingPublication: AnyPublication | null;
+  setShowMobileDrawer: (showMobileDrawer: boolean) => void;
+  setShowNewPostModal: (showNewPostModal: boolean) => void;
+  setShowProfileSwitchModal: (showProfileSwitchModal: boolean) => void;
   setShowPublicationReportModal: (
     showPublicationReportModal: boolean,
-    reportingPublication: AnyPublication | null
+    reportingPublicationId: null | string
   ) => void;
-  showReportProfileModal: boolean;
-  reportingProfile: Profile | null;
   setShowReportProfileModal: (
     reportProfileModal: boolean,
-    reportingProfile: Profile | null
+    reportingProfile: null | Profile
   ) => void;
+  showAuthModal: boolean;
+  showDiscardModal: boolean;
+  showInvitesModal: boolean;
+  showMobileDrawer: boolean;
+  showNewPostModal: boolean;
+  showProfileSwitchModal: boolean;
+  showPublicationReportModal: boolean;
+  showReportProfileModal: boolean;
 }
 
 export const useGlobalModalStateStore = create<GlobalModalState>((set) => ({
-  showAuthModal: false,
-  setShowAuthModal: (showAuthModal) => set(() => ({ showAuthModal })),
-  showWrongNetworkModal: false,
-  setShowWrongNetworkModal: (showWrongNetworkModal) =>
-    set(() => ({ showWrongNetworkModal })),
-  showNewPostModal: false,
-  setShowNewPostModal: (showNewPostModal) => set(() => ({ showNewPostModal })),
-  showDiscardModal: false,
+  authModalType: 'login',
+  reportingProfile: null,
+  reportingPublicationId: null,
+  setShowAuthModal: (showAuthModal, authModalType) => {
+    set(() => ({ authModalType, showAuthModal }));
+  },
   setShowDiscardModal: (showDiscardModal) => set(() => ({ showDiscardModal })),
-  showPublicationReportModal: false,
-  showProfileSwitchModal: false,
+  setShowInvitesModal: (showInvitesModal) => set(() => ({ showInvitesModal })),
+  setShowMobileDrawer: (showMobileDrawer) => set(() => ({ showMobileDrawer })),
+  setShowNewPostModal: (showNewPostModal) => set(() => ({ showNewPostModal })),
   setShowProfileSwitchModal: (showProfileSwitchModal) =>
     set(() => ({ showProfileSwitchModal })),
-  showMobileDrawer: false,
-  setShowMobileDrawer: (showMobileDrawer) => set(() => ({ showMobileDrawer })),
-  showInvitesModal: false,
-  setShowInvitesModal: (showInvitesModal) => set(() => ({ showInvitesModal })),
-  reportingPublication: null,
   setShowPublicationReportModal: (
     showPublicationReportModal,
-    reportingPublication
+    reportingPublicationId
   ) =>
     set(() => ({
-      showPublicationReportModal,
-      reportingPublication
+      reportingPublicationId,
+      showPublicationReportModal
     })),
-  showReportProfileModal: false,
-  reportingProfile: null,
   setShowReportProfileModal: (showReportProfileModal, reportingProfile) =>
-    set(() => ({ showReportProfileModal, reportingProfile }))
+    set(() => ({ reportingProfile, showReportProfileModal })),
+  showAuthModal: false,
+  showDiscardModal: false,
+  showInvitesModal: false,
+  showMobileDrawer: false,
+  showNewPostModal: false,
+  showProfileSwitchModal: false,
+  showPublicationReportModal: false,
+  showReportProfileModal: false
 }));

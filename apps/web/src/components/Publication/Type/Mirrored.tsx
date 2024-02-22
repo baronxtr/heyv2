@@ -1,17 +1,18 @@
+import type { Profile } from '@hey/lens';
+import type { FC } from 'react';
+
 import Profiles from '@components/Shared/Profiles';
 import { ArrowsRightLeftIcon } from '@heroicons/react/24/outline';
-import type { Mirror } from '@hey/lens';
-import { type FC } from 'react';
 
 interface MirroredProps {
-  publication: Mirror;
+  profile: Profile;
 }
 
-const Mirrored: FC<MirroredProps> = ({ publication }) => {
+const Mirrored: FC<MirroredProps> = ({ profile }) => {
   return (
-    <div className="ld-text-gray-500 flex items-center space-x-1 pb-4 text-[13px]">
-      <ArrowsRightLeftIcon className="h-4 w-4" />
-      <Profiles profiles={[publication.by]} context="mirrored" />
+    <div className="ld-text-gray-500 mb-3 flex items-center space-x-1 text-[13px]">
+      <ArrowsRightLeftIcon className="size-4" />
+      <Profiles context="mirrored" profiles={[profile]} />
     </div>
   );
 };

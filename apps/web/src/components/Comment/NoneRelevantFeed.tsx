@@ -1,42 +1,47 @@
+import type { Comment, PublicationsRequest } from '@hey/lens';
+import type { FC } from 'react';
+
+import { useHiddenCommentFeedStore } from '@components/Publication';
 import SinglePublication from '@components/Publication/SinglePublication';
-import type { AnyPublication, Comment, PublicationsRequest } from '@hey/lens';
 import {
   CommentRankingFilterType,
   CustomFiltersType,
+  HiddenCommentsType,
   LimitType,
   usePublicationsQuery
 } from '@hey/lens';
 import { Card } from '@hey/ui';
-import type { FC } from 'react';
 import { useState } from 'react';
 import { useInView } from 'react-cool-inview';
 
 interface NoneRelevantFeedProps {
-  publication?: AnyPublication;
+  publicationId: string;
 }
 
-const NoneRelevantFeed: FC<NoneRelevantFeedProps> = ({ publication }) => {
-  const publicationId =
-    publication?.__typename === 'Mirror'
-      ? publication?.mirrorOn?.id
-      : publication?.id;
+const NoneRelevantFeed: FC<NoneRelevantFeedProps> = ({ publicationId }) => {
+  const showHiddenComments = useHiddenCommentFeedStore(
+    (state) => state.showHiddenComments
+  );
   const [showMore, setShowMore] = useState(false);
 
   // Variables
   const request: PublicationsRequest = {
+    limit: LimitType.TwentyFive,
     where: {
       commentOn: {
+        hiddenComments: showHiddenComments
+          ? HiddenCommentsType.HiddenOnly
+          : HiddenCommentsType.Hide,
         id: publicationId,
         ranking: { filter: CommentRankingFilterType.NoneRelevant }
       },
       customFilters: [CustomFiltersType.Gardeners]
-    },
-    limit: LimitType.TwentyFive
+    }
   };
 
   const { data, fetchMore } = usePublicationsQuery({
-    variables: { request },
-    skip: !publicationId
+    skip: !publicationId,
+    variables: { request }
   });
 
   const comments = data?.publications?.items ?? [];
@@ -75,9 +80,9 @@ const NoneRelevantFeed: FC<NoneRelevantFeedProps> = ({ publication }) => {
           {comments?.map((comment, index) =>
             comment?.__typename === 'Comment' && comment.isHidden ? null : (
               <SinglePublication
-                key={`${publicationId}_${index}`}
                 isFirst={index === 0}
                 isLast={index === comments.length - 1}
+                key={`${publicationId}_${index}`}
                 publication={comment as Comment}
                 showType={false}
               />

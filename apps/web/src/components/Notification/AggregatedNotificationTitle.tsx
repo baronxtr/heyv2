@@ -1,21 +1,22 @@
 import type { Profile } from '@hey/lens';
+import type { FC } from 'react';
+
 import Link from 'next/link';
-import { type FC } from 'react';
 
 import { NotificationProfileName } from './Profile';
 
 interface AggregatedNotificationTitleProps {
   firstProfile: Profile;
+  linkToType: string;
   text: string;
   type?: string;
-  linkToType: string;
 }
 
 const AggregatedNotificationTitle: FC<AggregatedNotificationTitleProps> = ({
   firstProfile,
+  linkToType,
   text,
-  type,
-  linkToType
+  type
 }) => {
   return (
     <div className="font bold">
@@ -23,7 +24,7 @@ const AggregatedNotificationTitle: FC<AggregatedNotificationTitleProps> = ({
       <span> {text} </span>
       <span>
         {type ? (
-          <Link href={linkToType} className="hover:underline">
+          <Link className="hover:underline" href={linkToType}>
             {type.toLowerCase()}
           </Link>
         ) : null}

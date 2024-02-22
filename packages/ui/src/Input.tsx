@@ -1,5 +1,6 @@
-import dynamic from 'next/dynamic';
 import type { ComponentProps, ReactNode } from 'react';
+
+import dynamic from 'next/dynamic';
 import { forwardRef, useId } from 'react';
 
 import cn from '../cn';
@@ -8,25 +9,27 @@ import { FieldError } from './Form';
 const HelpTooltip = dynamic(() => import('./HelpTooltip'));
 
 interface InputProps extends Omit<ComponentProps<'input'>, 'prefix'> {
-  label?: string;
-  prefix?: string | ReactNode;
+  className?: string;
+  error?: boolean;
+  helper?: ReactNode;
+  hideError?: boolean;
   iconLeft?: ReactNode;
   iconRight?: ReactNode;
-  className?: string;
-  helper?: ReactNode;
-  error?: boolean;
+  label?: string;
+  prefix?: ReactNode | string;
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   {
+    className = '',
+    error,
+    helper,
+    hideError = false,
+    iconLeft,
+    iconRight,
     label,
     prefix,
     type = 'text',
-    iconLeft,
-    iconRight,
-    error,
-    className = '',
-    helper,
     ...props
   },
   ref
@@ -63,32 +66,32 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
           )}
         >
           <input
-            id={id}
             className={cn(
               { 'placeholder:text-red-500': error },
               prefix ? 'rounded-r-xl' : 'rounded-xl',
               'peer w-full border-none bg-transparent outline-none focus:ring-0',
               className
             )}
-            type={type}
+            id={id}
             ref={ref}
+            type={type}
             {...props}
           />
           <span
-            tabIndex={-1}
             className={cn({ 'order-first pl-3': iconLeft }, iconStyles)}
+            tabIndex={-1}
           >
             {iconLeft}
           </span>
           <span
-            tabIndex={-1}
             className={cn({ 'order-last pr-3': iconRight }, iconStyles)}
+            tabIndex={-1}
           >
             {iconRight}
           </span>
         </div>
       </div>
-      {props.name ? <FieldError name={props.name} /> : null}
+      {!hideError && props.name ? <FieldError name={props.name} /> : null}
     </label>
   );
 });

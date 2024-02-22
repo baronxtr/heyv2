@@ -1,30 +1,51 @@
 import { LENS_NETWORK } from '../constants';
 import { MainnetContracts, TestnetContracts } from '../contracts';
+import HeyEndpoint from '../hey-endpoints';
 import LensEndpoint from '../lens-endpoints';
 
 const getEnvConfig = (): {
-  apiEndpoint: string;
-  lensHubProxyAddress: `0x${string}`;
-  tokenHandleRegistry: `0x${string}`;
-  publicActProxyAddress: `0x${string}`;
   defaultCollectToken: string;
+  heyApiEndpoint: string;
+  heyLensSignup: `0x${string}`;
+  lensApiEndpoint: string;
+  lensHubProxyAddress: `0x${string}`;
+  permissionlessCreator?: `0x${string}`;
+  publicActProxyAddress: `0x${string}`;
+  tokenHandleRegistry: `0x${string}`;
 } => {
   switch (LENS_NETWORK) {
     case 'testnet':
       return {
-        apiEndpoint: LensEndpoint.Testnet,
+        defaultCollectToken: TestnetContracts.DefaultToken,
+        heyApiEndpoint: HeyEndpoint.Testnet,
+        heyLensSignup: TestnetContracts.HeyLensSignup,
+        lensApiEndpoint: LensEndpoint.Testnet,
         lensHubProxyAddress: TestnetContracts.LensHubProxy,
-        tokenHandleRegistry: TestnetContracts.TokenHandleRegistry,
+        permissionlessCreator: TestnetContracts.PermissionlessCreator,
         publicActProxyAddress: TestnetContracts.PublicActProxy,
-        defaultCollectToken: TestnetContracts.DefaultToken
+        tokenHandleRegistry: TestnetContracts.TokenHandleRegistry
+      };
+    case 'staging':
+      return {
+        defaultCollectToken: TestnetContracts.DefaultToken,
+        heyApiEndpoint: HeyEndpoint.Staging,
+        heyLensSignup: TestnetContracts.HeyLensSignup,
+        lensApiEndpoint: LensEndpoint.Staging,
+        lensHubProxyAddress: TestnetContracts.LensHubProxy,
+        permissionlessCreator: TestnetContracts.PermissionlessCreator,
+        publicActProxyAddress: TestnetContracts.PublicActProxy,
+        tokenHandleRegistry: TestnetContracts.TokenHandleRegistry
       };
     default:
       return {
-        apiEndpoint: LensEndpoint.Mainnet,
+        defaultCollectToken: MainnetContracts.DefaultToken,
+        heyApiEndpoint: HeyEndpoint.Mainnet,
+        heyLensSignup: MainnetContracts.HeyLensSignup,
+        lensApiEndpoint: LensEndpoint.Mainnet,
         lensHubProxyAddress: MainnetContracts.LensHubProxy,
-        tokenHandleRegistry: MainnetContracts.TokenHandleRegistry,
+        permissionlessCreator: MainnetContracts.PermissionlessCreator,
         publicActProxyAddress: MainnetContracts.PublicActProxy,
-        defaultCollectToken: MainnetContracts.DefaultToken
+        tokenHandleRegistry: MainnetContracts.TokenHandleRegistry
       };
   }
 };

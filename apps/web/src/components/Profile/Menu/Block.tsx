@@ -1,10 +1,11 @@
+import type { Profile } from '@hey/lens';
+import type { FC } from 'react';
+
 import { Menu } from '@headlessui/react';
 import { NoSymbolIcon } from '@heroicons/react/24/outline';
-import type { Profile } from '@hey/lens';
 import getProfile from '@hey/lib/getProfile';
 import stopEventPropagation from '@hey/lib/stopEventPropagation';
 import cn from '@hey/ui/cn';
-import { type FC } from 'react';
 import { useGlobalAlertStateStore } from 'src/store/non-persisted/useGlobalAlertStateStore';
 
 interface BlockProps {
@@ -23,20 +24,18 @@ const Block: FC<BlockProps> = ({ profile }) => {
       className={({ active }) =>
         cn(
           { 'dropdown-active': active },
-          'm-2 block cursor-pointer rounded-lg px-2 py-1.5 text-sm'
+          'm-2 flex cursor-pointer items-center space-x-2 rounded-lg px-2 py-1.5 text-sm'
         )
       }
-      onClick={async (event) => {
+      onClick={(event) => {
         stopEventPropagation(event);
         setShowBlockOrUnblockAlert(true, profile);
       }}
     >
-      <div className="flex items-center space-x-2">
-        <NoSymbolIcon className="h-4 w-4" />
-        <div>
-          {isBlockedByMe ? 'Unblock' : 'Block'}{' '}
-          {getProfile(profile).slugWithPrefix}
-        </div>
+      <NoSymbolIcon className="size-4" />
+      <div>
+        {isBlockedByMe ? 'Unblock' : 'Block'}{' '}
+        {getProfile(profile).slugWithPrefix}
       </div>
     </Menu.Item>
   );

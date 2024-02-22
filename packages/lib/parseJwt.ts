@@ -4,7 +4,8 @@
  * @param str The JWT to decode.
  * @returns The decoded data in base64 format.
  */
-const decoded = (str: string): string => atob(str);
+const decoded = (str: string): string =>
+  Buffer.from(str, 'base64').toString('binary');
 
 /**
  * Parses a JSON Web Token and returns an object with the expiry time in seconds.
@@ -15,23 +16,23 @@ const decoded = (str: string): string => atob(str);
 const parseJwt = (
   token: string
 ): {
-  id: string;
-  evmAddress: string;
-  role: string;
   authorizationId: string;
-  iat: number;
+  evmAddress: string;
   exp: number;
+  iat: number;
+  id: string;
+  role: string;
 } => {
   try {
     return JSON.parse(decoded(token.split('.')[1]));
   } catch {
     return {
-      id: '',
-      evmAddress: '',
-      role: '',
       authorizationId: '',
+      evmAddress: '',
+      exp: 0,
       iat: 0,
-      exp: 0
+      id: '',
+      role: ''
     };
   }
 };

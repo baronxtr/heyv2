@@ -1,4 +1,6 @@
-import SearchUser from '@components/Shared/SearchUser';
+import type { FC } from 'react';
+
+import SearchProfiles from '@components/Shared/SearchProfiles';
 import { PlusCircleIcon } from '@heroicons/react/24/outline';
 import { LensHub } from '@hey/abis';
 import { ADDRESS_PLACEHOLDER, LENSHUB_PROXY } from '@hey/data/constants';
@@ -14,13 +16,15 @@ import getSignature from '@hey/lib/getSignature';
 import { Button, Spinner } from '@hey/ui';
 import errorToast from '@lib/errorToast';
 import { Leafwatch } from '@lib/leafwatch';
-import { type FC, useState } from 'react';
+import { useState } from 'react';
 import toast from 'react-hot-toast';
 import useHandleWrongNetwork from 'src/hooks/useHandleWrongNetwork';
 import { useNonceStore } from 'src/store/non-persisted/useNonceStore';
+import { useProfileRestriction } from 'src/store/non-persisted/useProfileRestriction';
 import useProfileStore from 'src/store/persisted/useProfileStore';
+import { hydrateTbaStatus } from 'src/store/persisted/useTbaStatusStore';
 import { isAddress } from 'viem';
-import { useContractWrite, useSignTypedData } from 'wagmi';
+import { useSignTypedData, useWriteContract } from 'wagmi';
 
 interface AddProfileManagerProps {
   setShowAddManagerModal: (show: boolean) => void;
@@ -30,6 +34,7 @@ const AddProfileManager: FC<AddProfileManagerProps> = ({
   setShowAddManagerModal
 }) => {
   const currentProfile = useProfileStore((state) => state.currentProfile);
+  const { isSuspended } = useProfileRestriction();
   const lensHubOnchainSigNonce = useNonceStore(
     (state) => state.lensHubOnchainSigNonce
   );
@@ -40,6 +45,8 @@ const AddProfileManager: FC<AddProfileManagerProps> = ({
   const [isLoading, setIsLoading] = useState(false);
 
   const handleWrongNetwork = useHandleWrongNetwork();
+
+  const { isTba } = hydrateTbaStatus();
   const { canBroadcast } = checkDispatcherPermissions(currentProfile);
 
   const onCompleted = (__typename?: 'RelayError' | 'RelaySuccess') => {
@@ -59,20 +66,28 @@ const AddProfileManager: FC<AddProfileManagerProps> = ({
     errorToast(error);
   };
 
-  const { signTypedDataAsync } = useSignTypedData({ onError });
-  const { write } = useContractWrite({
-    address: LENSHUB_PROXY,
-    abi: LensHub,
-    functionName: 'changeDelegatedExecutorsConfig',
-    onSuccess: () => {
-      onCompleted();
-      setLensHubOnchainSigNonce(lensHubOnchainSigNonce + 1);
-    },
-    onError: (error) => {
-      onError(error);
-      setLensHubOnchainSigNonce(lensHubOnchainSigNonce - 1);
+  const { signTypedDataAsync } = useSignTypedData({ mutation: { onError } });
+  const { writeContractAsync } = useWriteContract({
+    mutation: {
+      onError: (error) => {
+        onError(error);
+        setLensHubOnchainSigNonce(lensHubOnchainSigNonce - 1);
+      },
+      onSuccess: () => {
+        onCompleted();
+        setLensHubOnchainSigNonce(lensHubOnchainSigNonce + 1);
+      }
     }
   });
+
+  const write = async ({ args }: { args: any[] }) => {
+    return await writeContractAsync({
+      abi: LensHub,
+      address: LENSHUB_PROXY,
+      args,
+      functionName: 'changeDelegatedExecutorsConfig'
+    });
+  };
 
   const [broadcastOnchain] = useBroadcastOnchainMutation({
     onCompleted: ({ broadcastOnchain }) =>
@@ -82,13 +97,11 @@ const AddProfileManager: FC<AddProfileManagerProps> = ({
     useCreateChangeProfileManagersTypedDataMutation({
       onCompleted: async ({ createChangeProfileManagersTypedData }) => {
         const { id, typedData } = createChangeProfileManagersTypedData;
-        const signature = await signTypedDataAsync(getSignature(typedData));
-        setLensHubOnchainSigNonce(lensHubOnchainSigNonce + 1);
         const {
-          delegatorProfileId,
-          delegatedExecutors,
           approvals,
           configNumber,
+          delegatedExecutors,
+          delegatorProfileId,
           switchToGivenConfig
         } = typedData.value;
         const args = [
@@ -98,18 +111,28 @@ const AddProfileManager: FC<AddProfileManagerProps> = ({
           configNumber,
           switchToGivenConfig
         ];
+        await handleWrongNetwork();
 
-        if (canBroadcast) {
-          const { data } = await broadcastOnchain({
-            variables: { request: { id, signature } }
-          });
-          if (data?.broadcastOnchain.__typename === 'RelayError') {
-            return write({ args });
+        try {
+          if (!isTba && canBroadcast) {
+            const signature = await signTypedDataAsync(getSignature(typedData));
+            const { data } = await broadcastOnchain({
+              variables: { request: { id, signature } }
+            });
+            if (data?.broadcastOnchain.__typename === 'RelayError') {
+              return await write({ args });
+            }
+            setLensHubOnchainSigNonce(lensHubOnchainSigNonce + 1);
+
+            return;
           }
-          return;
-        }
 
-        return write({ args });
+          return await write({ args });
+        } catch {
+          // Fix for Safe wallets
+          // TODO: Remove this once Lens supports Safe wallets
+          return await write({ args });
+        }
       },
       onError
     });
@@ -119,8 +142,8 @@ const AddProfileManager: FC<AddProfileManagerProps> = ({
       return toast.error(Errors.SignWallet);
     }
 
-    if (handleWrongNetwork()) {
-      return;
+    if (isSuspended) {
+      return toast.error(Errors.Suspended);
     }
 
     try {
@@ -130,7 +153,7 @@ const AddProfileManager: FC<AddProfileManagerProps> = ({
           options: { overrideSigNonce: lensHubOnchainSigNonce },
           request: {
             changeManagers: [
-              { address: manager, action: ChangeProfileManagerActionType.Add }
+              { action: ChangeProfileManagerActionType.Add, address: manager }
             ]
           }
         }
@@ -142,27 +165,27 @@ const AddProfileManager: FC<AddProfileManagerProps> = ({
 
   return (
     <div className="space-y-4 p-5">
-      <SearchUser
-        placeholder={`${ADDRESS_PLACEHOLDER} or wagmi`}
-        value={manager}
+      <SearchProfiles
+        error={manager.length > 0 && !isAddress(manager)}
+        hideDropdown={isAddress(manager)}
         onChange={(event) => setManager(event.target.value)}
         onProfileSelected={(profile) => setManager(profile.ownedBy.address)}
-        hideDropdown={isAddress(manager)}
-        error={manager.length > 0 && !isAddress(manager)}
+        placeholder={`${ADDRESS_PLACEHOLDER} or wagmi`}
+        value={manager}
       />
       <div className="flex">
         <Button
           className="ml-auto"
-          type="submit"
           disabled={isLoading || !isAddress(manager)}
           icon={
             isLoading ? (
               <Spinner size="xs" />
             ) : (
-              <PlusCircleIcon className="h-4 w-4" />
+              <PlusCircleIcon className="size-4" />
             )
           }
           onClick={addManager}
+          type="submit"
         >
           Add manager
         </Button>

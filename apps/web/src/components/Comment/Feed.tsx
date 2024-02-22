@@ -1,54 +1,60 @@
+import type { Comment, PublicationsRequest } from '@hey/lens';
+import type { FC } from 'react';
+
+import { useHiddenCommentFeedStore } from '@components/Publication';
 import QueuedPublication from '@components/Publication/QueuedPublication';
 import SinglePublication from '@components/Publication/SinglePublication';
 import PublicationsShimmer from '@components/Shared/Shimmer/PublicationsShimmer';
 import { ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline';
-import type { AnyPublication, Comment, PublicationsRequest } from '@hey/lens';
 import {
   CommentRankingFilterType,
   CustomFiltersType,
+  HiddenCommentsType,
   LimitType,
   usePublicationsQuery
 } from '@hey/lens';
-import { isMirrorPublication } from '@hey/lib/publicationHelpers';
 import { OptmisticPublicationType } from '@hey/types/enums';
 import { Card, EmptyState, ErrorMessage } from '@hey/ui';
-import { type FC } from 'react';
 import { useInView } from 'react-cool-inview';
 import { useImpressionsStore } from 'src/store/non-persisted/useImpressionsStore';
 import { useTransactionStore } from 'src/store/persisted/useTransactionStore';
 
 interface FeedProps {
-  publication: AnyPublication;
+  isHidden: boolean;
+  publicationId: string;
 }
 
-const Feed: FC<FeedProps> = ({ publication }) => {
-  const publicationId = isMirrorPublication(publication)
-    ? publication?.mirrorOn?.id
-    : publication?.id;
+const Feed: FC<FeedProps> = ({ isHidden, publicationId }) => {
   const txnQueue = useTransactionStore((state) => state.txnQueue);
+  const showHiddenComments = useHiddenCommentFeedStore(
+    (state) => state.showHiddenComments
+  );
   const fetchAndStoreViews = useImpressionsStore(
     (state) => state.fetchAndStoreViews
   );
 
   // Variables
   const request: PublicationsRequest = {
+    limit: LimitType.TwentyFive,
     where: {
       commentOn: {
+        hiddenComments: showHiddenComments
+          ? HiddenCommentsType.HiddenOnly
+          : HiddenCommentsType.Hide,
         id: publicationId,
         ranking: { filter: CommentRankingFilterType.Relevant }
       },
       customFilters: [CustomFiltersType.Gardeners]
-    },
-    limit: LimitType.TwentyFive
+    }
   };
 
-  const { data, loading, error, fetchMore } = usePublicationsQuery({
-    variables: { request },
-    skip: !publicationId,
+  const { data, error, fetchMore, loading } = usePublicationsQuery({
     onCompleted: async ({ publications }) => {
       const ids = publications?.items?.map((p) => p.id) || [];
       await fetchAndStoreViews(ids);
-    }
+    },
+    skip: !publicationId,
+    variables: { request }
   });
 
   const comments = data?.publications?.items ?? [];
@@ -86,14 +92,14 @@ const Feed: FC<FeedProps> = ({ publication }) => {
   }
 
   if (error) {
-    return <ErrorMessage title="Failed to load comment feed" error={error} />;
+    return <ErrorMessage error={error} title="Failed to load comment feed" />;
   }
 
-  if (!publication?.isHidden && totalComments === 0) {
+  if (!isHidden && totalComments === 0) {
     return (
       <EmptyState
+        icon={<ChatBubbleLeftRightIcon className="text-brand-500 size-8" />}
         message="Be the first one to comment!"
-        icon={<ChatBubbleLeftRightIcon className="text-brand-500 h-8 w-8" />}
       />
     );
   }
@@ -107,9 +113,9 @@ const Feed: FC<FeedProps> = ({ publication }) => {
         {comments?.map((comment, index) =>
           comment?.__typename !== 'Comment' || comment.isHidden ? null : (
             <SinglePublication
-              key={`${comment.id}`}
               isFirst={index === 0}
               isLast={index === comments.length - 1}
+              key={`${comment.id}`}
               publication={comment as Comment}
               showType={false}
             />

@@ -1,24 +1,31 @@
 import { create } from 'zustand';
 
 interface PreferencesState {
-  isPride: boolean;
-  setIsPride: (isPride: boolean) => void;
+  hasDismissedOrMintedMembershipNft: boolean;
   highSignalNotificationFilter: boolean;
+  isPride: boolean;
+  resetPreferences: () => void;
+  setHasDismissedOrMintedMembershipNft: (
+    hasDismissedOrMintedMembershipNft: boolean
+  ) => void;
   setHighSignalNotificationFilter: (
     highSignalNotificationFilter: boolean
   ) => void;
-  resetPreferences: () => void;
+  setIsPride: (isPride: boolean) => void;
 }
 
 export const usePreferencesStore = create<PreferencesState>((set) => ({
-  isPride: false,
-  setIsPride: (isPride) => set(() => ({ isPride })),
+  hasDismissedOrMintedMembershipNft: true,
   highSignalNotificationFilter: false,
-  setHighSignalNotificationFilter: (highSignalNotificationFilter) =>
-    set(() => ({ highSignalNotificationFilter })),
+  isPride: false,
   resetPreferences: () =>
     set(() => ({
-      isPride: false,
+      hasDismissedOrMintedMembershipNft: true,
       highSignalNotificationFilter: false
-    }))
+    })),
+  setHasDismissedOrMintedMembershipNft: (hasDismissedOrMintedMembershipNft) =>
+    set(() => ({ hasDismissedOrMintedMembershipNft })),
+  setHighSignalNotificationFilter: (highSignalNotificationFilter) =>
+    set(() => ({ highSignalNotificationFilter })),
+  setIsPride: (isPride) => set(() => ({ isPride }))
 }));

@@ -1,9 +1,10 @@
+import type { AnyPublication } from '@hey/lens';
+import type { FC } from 'react';
+
 import { Menu } from '@headlessui/react';
 import { TrashIcon } from '@heroicons/react/24/outline';
-import type { AnyPublication } from '@hey/lens';
 import stopEventPropagation from '@hey/lib/stopEventPropagation';
 import cn from '@hey/ui/cn';
-import { type FC } from 'react';
 import { useGlobalAlertStateStore } from 'src/store/non-persisted/useGlobalAlertStateStore';
 
 interface DeleteProps {
@@ -30,7 +31,7 @@ const Delete: FC<DeleteProps> = ({ publication }) => {
       }}
     >
       <div className="flex items-center space-x-2">
-        <TrashIcon className="h-4 w-4" />
+        <TrashIcon className="size-4" />
         <div>Delete</div>
       </div>
     </Menu.Item>

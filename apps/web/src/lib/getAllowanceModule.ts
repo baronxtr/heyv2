@@ -9,29 +9,42 @@ import { FollowModuleType, OpenActionModuleType } from '@hey/lens';
 const getAllowanceModule = (
   name: string
 ): {
-  name: string;
   field: string;
+  name: string;
 } => {
   switch (name) {
     // Collect Modules
     case OpenActionModuleType.SimpleCollectOpenActionModule:
-      return { name: 'Simple collect', field: 'openActionModule' };
+      return { field: 'openActionModule', name: 'Simple collect' };
     case OpenActionModuleType.MultirecipientFeeCollectOpenActionModule:
-      return { name: 'Multirecipient paid collect', field: 'openActionModule' };
+      return { field: 'openActionModule', name: 'Multirecipient paid collect' };
     case OpenActionModuleType.LegacySimpleCollectModule:
-      return { name: 'Legacy Simple collect', field: 'openActionModule' };
+      return { field: 'openActionModule', name: 'Legacy Simple collect' };
     case OpenActionModuleType.LegacyMultirecipientFeeCollectModule:
       return {
-        name: 'Legacy Multirecipient paid collect',
-        field: 'openActionModule'
+        field: 'openActionModule',
+        name: 'Legacy Multirecipient paid collect'
+      };
+    case OpenActionModuleType.LegacyFreeCollectModule:
+      return { field: 'openActionModule', name: 'Legacy Free collect' };
+    case OpenActionModuleType.LegacyFeeCollectModule:
+      return { field: 'openActionModule', name: 'Legacy Fee collect' };
+    case OpenActionModuleType.LegacyLimitedFeeCollectModule:
+      return { field: 'openActionModule', name: 'Legacy Limited Fee collect' };
+    case OpenActionModuleType.LegacyTimedFeeCollectModule:
+      return { field: 'openActionModule', name: 'Legacy Timed Fee collect' };
+    case OpenActionModuleType.LegacyLimitedTimedFeeCollectModule:
+      return {
+        field: 'openActionModule',
+        name: 'Legacy Limited Timed Fee collect'
       };
 
     // Follow modules
     case FollowModuleType.FeeFollowModule:
-      return { name: 'Fee follow', field: 'followModule' };
+      return { field: 'followModule', name: 'Fee follow' };
 
     default:
-      return { name, field: 'collectModule' };
+      return { field: 'collectModule', name };
   }
 };
 

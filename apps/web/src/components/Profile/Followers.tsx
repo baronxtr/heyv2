@@ -1,32 +1,33 @@
+import type { FollowersRequest, Profile } from '@hey/lens';
+import type { FC } from 'react';
+
 import Loader from '@components/Shared/Loader';
 import UserProfile from '@components/Shared/UserProfile';
 import { UsersIcon } from '@heroicons/react/24/outline';
-import { FollowUnfollowSource } from '@hey/data/tracking';
-import type { FollowersRequest, Profile } from '@hey/lens';
+import { ProfileLinkSource } from '@hey/data/tracking';
 import { LimitType, useFollowersQuery } from '@hey/lens';
-import getProfile from '@hey/lib/getProfile';
 import { EmptyState, ErrorMessage } from '@hey/ui';
 import { motion } from 'framer-motion';
-import { type FC } from 'react';
 import { Virtuoso } from 'react-virtuoso';
 import useProfileStore from 'src/store/persisted/useProfileStore';
 
 interface FollowersProps {
-  profile: Profile;
+  handle: string;
+  profileId: string;
 }
 
-const Followers: FC<FollowersProps> = ({ profile }) => {
+const Followers: FC<FollowersProps> = ({ handle, profileId }) => {
   const currentProfile = useProfileStore((state) => state.currentProfile);
 
   // Variables
   const request: FollowersRequest = {
-    of: profile?.id,
-    limit: LimitType.TwentyFive
+    limit: LimitType.TwentyFive,
+    of: profileId
   };
 
-  const { data, loading, error, fetchMore } = useFollowersQuery({
-    variables: { request },
-    skip: !profile?.id
+  const { data, error, fetchMore, loading } = useFollowersQuery({
+    skip: !profileId,
+    variables: { request }
   });
 
   const followers = data?.followers?.items;
@@ -50,16 +51,14 @@ const Followers: FC<FollowersProps> = ({ profile }) => {
   if (followers?.length === 0) {
     return (
       <EmptyState
+        hideCard
+        icon={<UsersIcon className="text-brand-500 size-8" />}
         message={
           <div>
-            <span className="mr-1 font-bold">
-              {getProfile(profile).slugWithPrefix}
-            </span>
+            <span className="mr-1 font-bold">{handle}</span>
             <span>doesn’t have any followers yet.</span>
           </div>
         }
-        icon={<UsersIcon className="text-brand-500 h-8 w-8" />}
-        hideCard
       />
     );
   }
@@ -67,31 +66,29 @@ const Followers: FC<FollowersProps> = ({ profile }) => {
   return (
     <div className="max-h-[80vh] overflow-y-auto">
       <ErrorMessage
-        title="Failed to load followers"
-        error={error}
         className="m-5"
+        error={error}
+        title="Failed to load followers"
       />
       <Virtuoso
         className="virtual-profile-list"
         data={followers}
         endReached={onEndReached}
-        itemContent={(index, follower) => {
+        itemContent={(_, follower) => {
           return (
             <motion.div
-              initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
               className="p-5"
+              exit={{ opacity: 0 }}
+              initial={{ opacity: 0 }}
             >
               <UserProfile
                 profile={follower as Profile}
-                isFollowing={follower.operations.isFollowedByMe.value}
-                followUnfollowPosition={index + 1}
-                followUnfollowSource={FollowUnfollowSource.FOLLOWERS_MODAL}
                 showBio
                 showFollow={currentProfile?.id !== follower.id}
                 showUnfollow={currentProfile?.id !== follower.id}
                 showUserPreview={false}
+                source={ProfileLinkSource.Followers}
               />
             </motion.div>
           );

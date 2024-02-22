@@ -1,3 +1,5 @@
+import type { FC } from 'react';
+
 import MentionsPlugin from '@components/Shared/Lexical/Plugins/AtMentionsPlugin';
 import LexicalAutoLinkPlugin from '@components/Shared/Lexical/Plugins/AutoLinkPlugin';
 import EmojiPickerPlugin from '@components/Shared/Lexical/Plugins/EmojiPicker';
@@ -20,11 +22,12 @@ import {
   INSERT_LINE_BREAK_COMMAND,
   INSERT_PARAGRAPH_COMMAND
 } from 'lexical';
-import type { FC } from 'react';
 import { useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import useUploadAttachments from 'src/hooks/useUploadAttachments';
-import { usePublicationStore } from 'src/store/non-persisted/usePublicationStore';
+import { usePublicationAttachmentStore } from 'src/store/non-persisted/publication/usePublicationAttachmentStore';
+import { usePublicationPollStore } from 'src/store/non-persisted/publication/usePublicationPollStore';
+import { usePublicationStore } from 'src/store/non-persisted/publication/usePublicationStore';
 
 const TRANSFORMERS = [...TEXT_FORMAT_TRANSFORMERS];
 
@@ -32,8 +35,12 @@ const Editor: FC = () => {
   const setPublicationContent = usePublicationStore(
     (state) => state.setPublicationContent
   );
-  const showPollEditor = usePublicationStore((state) => state.showPollEditor);
-  const attachments = usePublicationStore((state) => state.attachments);
+  const showPollEditor = usePublicationPollStore(
+    (state) => state.showPollEditor
+  );
+  const attachments = usePublicationAttachmentStore(
+    (state) => state.attachments
+  );
   const { handleUploadAttachments } = useUploadAttachments();
   const [editor] = useLexicalComposerContext();
 
@@ -67,14 +74,14 @@ const Editor: FC = () => {
       <ToolbarPlugin />
       <RichTextPlugin
         contentEditable={
-          <ContentEditable className="my-4 block min-h-[65px] overflow-auto px-5" />
+          <ContentEditable className="my-4 block min-h-[65px] overflow-auto px-5 leading-6 sm:leading-[26px]" />
         }
+        ErrorBoundary={() => <div>{Errors.SomethingWentWrong}</div>}
         placeholder={
           <div className="pointer-events-none absolute top-[65px] whitespace-nowrap px-5 text-gray-400">
             {showPollEditor ? 'Ask a question...' : "What's happening?"}
           </div>
         }
-        ErrorBoundary={() => <div>{Errors.SomethingWentWrong}</div>}
       />
       <OnChangePlugin
         onChange={(editorState) => {

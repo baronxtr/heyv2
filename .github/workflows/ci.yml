@@ -8,49 +8,127 @@ on:
   workflow_dispatch:
 
 jobs:
-  ci:
-    name: CI
+  typecheck:
+    name: Typecheck
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout 🚪
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Setup pnpm 🌸
-        uses: pnpm/action-setup@v2.2.4
-
-      - name: Setup node 🍀
-        uses: actions/setup-node@v3
-        with:
-          node-version-file: '.nvmrc'
-          cache: 'pnpm'
-
-      - name: Bootstrap 📦
-        run: script/bootstrap
+      - name: Setup Node.js, pnpm and dependencies 🌸
+        uses: ./.github/actions/setup-pnpm
 
       - name: Typecheck 🔡
         run: pnpm typecheck:affected
 
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 🚪
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js, pnpm and dependencies 🌸
+        uses: ./.github/actions/setup-pnpm
+
       - name: Lint 🪩
         run: pnpm lint:affected
 
+  prettier:
+    name: Prettier
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 🚪
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js, pnpm and dependencies 🌸
+        uses: ./.github/actions/setup-pnpm
+
       - name: Prettier ✨
         run: pnpm prettier:affected
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 🚪
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js, pnpm and dependencies 🌸
+        uses: ./.github/actions/setup-pnpm
+
+      - name: Build 🎁
+        run: pnpm build
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    steps:
+      - name: Checkout 🚪
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js, pnpm and dependencies 🌸
+        uses: ./.github/actions/setup-pnpm
+
+      - name: Migration 🚚
+        env:
+          DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/postgres'
+        run: |
+          cd apps/api
+          pnpm prisma:migrate
+          pnpm prisma:seed
 
       - name: Build 🎁
         run: pnpm build
 
       - name: Run Tests 🧪
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          NEXT_PUBLIC_LENS_NETWORK: 'testnet'
+          DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/postgres'
+          CLICKHOUSE_PASSWORD: ${{ secrets.CLICKHOUSE_PASSWORD }}
           SECRET: ${{ secrets.SECRET }}
           EVER_ACCESS_KEY: ${{ secrets.EVER_ACCESS_KEY }}
           EVER_ACCESS_SECRET: ${{ secrets.EVER_ACCESS_SECRET }}
-          LENS_IPFS_AUTH_KEY: ${{ secrets.LENS_IPFS_AUTH_KEY }}
-          CLICKHOUSE_PASSWORD: ${{ secrets.CLICKHOUSE_PASSWORD }}
+          IPAPI_KEY: ${{ secrets.IPAPI_KEY }}
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
-          REDIS_URL: ${{ secrets.REDIS_URL }}
           IRYS_PRIVATE_KEY: ${{ secrets.IRYS_PRIVATE_KEY }}
-          LIVEPEER_API_KEY: ${{ secrets.LIVEPEER_API_KEY }}
-        run: pnpm test:e2e
+          IMAGEKIT_URL: ${{ secrets.IMAGEKIT_URL }}
+        run: |
+          cd apps/api
+          {
+            echo "NEXT_PUBLIC_LENS_NETWORK=${NEXT_PUBLIC_LENS_NETWORK}"
+            echo "DATABASE_URL=${DATABASE_URL}"
+            echo "CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}"
+            echo "SECRET=${SECRET}"
+            echo "EVER_ACCESS_KEY=${EVER_ACCESS_KEY}"
+            echo "EVER_ACCESS_SECRET=${EVER_ACCESS_SECRET}"
+            echo "IPAPI_KEY=${IPAPI_KEY}"
+            echo "GOOGLE_API_KEY=${GOOGLE_API_KEY}"
+            echo "IRYS_PRIVATE_KEY=${IRYS_PRIVATE_KEY}"
+            echo "IMAGEKIT_URL=${IMAGEKIT_URL}"
+          } > .env
+          cd ../..
+          pnpm test:e2e

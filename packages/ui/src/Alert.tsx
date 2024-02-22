@@ -1,34 +1,35 @@
-import { Dialog, Transition } from '@headlessui/react';
 import type { FC, ReactNode } from 'react';
+
+import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
 
 import { Button } from './Button';
 
 interface AlertProps {
-  title: ReactNode;
+  children?: ReactNode;
+  confirmText?: string;
   description: ReactNode;
-  show: boolean;
   isDestructive?: boolean;
   isPerformingAction?: boolean;
-  confirmText?: string;
-  children?: ReactNode;
-  onConfirm?: () => void;
   onClose: () => void;
+  onConfirm?: () => void;
+  show: boolean;
+  title: ReactNode;
 }
 
 export const Alert: FC<AlertProps> = ({
-  title,
+  children,
+  confirmText,
   description,
-  show,
   isDestructive = false,
   isPerformingAction = false,
-  confirmText,
-  children,
+  onClose,
   onConfirm,
-  onClose
+  show,
+  title
 }) => {
   return (
-    <Transition.Root show={show} as={Fragment}>
+    <Transition.Root as={Fragment} show={show}>
       <Dialog
         as="div"
         className="fixed inset-0 z-10 overflow-y-auto"
@@ -56,7 +57,7 @@ export const Alert: FC<AlertProps> = ({
             leaveFrom="opacity-100 translate-y-0 sm:scale-100"
             leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
           >
-            <div className="inline-block w-full scale-100 space-y-6 rounded-xl bg-white p-5 text-left align-bottom shadow-xl transition-all dark:bg-gray-800 sm:max-w-sm sm:align-middle">
+            <div className="inline-block w-full scale-100 space-y-6 rounded-xl bg-white p-5 text-left align-bottom shadow-xl transition-all sm:max-w-sm sm:align-middle dark:bg-gray-800">
               <div className="space-y-2">
                 <b className="text-xl">{title}</b>
                 <p>{description}</p>
@@ -66,20 +67,20 @@ export const Alert: FC<AlertProps> = ({
                 {onConfirm ? (
                   <Button
                     className="w-full"
-                    size="lg"
-                    variant={isDestructive ? 'danger' : 'primary'}
                     disabled={isPerformingAction}
                     onClick={() => onConfirm()}
+                    size="lg"
+                    variant={isDestructive ? 'danger' : 'primary'}
                   >
                     {confirmText}
                   </Button>
                 ) : null}
                 <Button
                   className="w-full"
+                  onClick={onClose}
+                  outline
                   size="lg"
                   variant="secondary"
-                  outline
-                  onClick={onClose}
                 >
                   Cancel
                 </Button>

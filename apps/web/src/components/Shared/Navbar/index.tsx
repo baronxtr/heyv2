@@ -1,17 +1,19 @@
+import type { Profile } from '@hey/lens';
+import type { FC } from 'react';
+
 import NotificationIcon from '@components/Notification/NotificationIcon';
 import { MagnifyingGlassIcon, XMarkIcon } from '@heroicons/react/24/outline';
-import type { Profile } from '@hey/lens';
 import getProfile from '@hey/lib/getProfile';
 import cn from '@hey/ui/cn';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import type { FC } from 'react';
 import { useState } from 'react';
-import { useFeatureFlagsStore } from 'src/store/non-persisted/useFeatureFlagsStore';
 import { usePreferencesStore } from 'src/store/non-persisted/usePreferencesStore';
+import { useFeatureFlagsStore } from 'src/store/persisted/useFeatureFlagsStore';
 import useProfileStore from 'src/store/persisted/useProfileStore';
 
 import MenuItems from './MenuItems';
+import ModIcon from './ModIcon';
 import MoreNavItems from './MoreNavItems';
 import Search from './Search';
 import StaffBar from './StaffBar';
@@ -28,15 +30,14 @@ const Navbar: FC = () => {
   };
 
   interface NavItemProps {
-    url: string;
-    name: string;
     current: boolean;
+    name: string;
+    url: string;
   }
 
-  const NavItem = ({ url, name, current }: NavItemProps) => {
+  const NavItem = ({ current, name, url }: NavItemProps) => {
     return (
       <Link
-        href={url}
         className={cn(
           'outline-brand-500 cursor-pointer rounded-md px-2 py-1 text-left text-sm font-bold tracking-wide md:px-3',
           {
@@ -45,6 +46,7 @@ const Navbar: FC = () => {
               !current
           }
         )}
+        href={url}
       >
         {name}
       </Link>
@@ -56,11 +58,11 @@ const Navbar: FC = () => {
 
     return (
       <>
-        <NavItem url="/" name="Home" current={pathname === '/'} />
+        <NavItem current={pathname === '/'} name="Home" url="/" />
         <NavItem
-          url="/explore"
-          name="Explore"
           current={pathname === '/explore'}
+          name="Explore"
+          url="/explore"
         />
         <MoreNavItems />
       </>
@@ -76,23 +78,24 @@ const Navbar: FC = () => {
             <button
               className="inline-flex items-center justify-center rounded-md text-gray-500 focus:outline-none md:hidden"
               onClick={() => setShowSearch(!showSearch)}
+              type="button"
             >
               {showSearch ? (
-                <XMarkIcon className="h-6 w-6" />
+                <XMarkIcon className="size-6" />
               ) : (
-                <MagnifyingGlassIcon className="h-6 w-6" />
+                <MagnifyingGlassIcon className="size-6" />
               )}
             </button>
             <Link
-              href="/"
               className="outline-brand-500 hidden rounded-full outline-offset-8 md:block"
+              href="/"
             >
               <img
-                className="h-8 w-8"
-                height={32}
-                width={32}
-                src={isPride ? '/pride.png' : '/logo.png'}
                 alt="Logo"
+                className="size-8"
+                height={32}
+                src={isPride ? '/pride.png' : '/logo.png'}
+                width={32}
               />
             </Link>
             <div className="hidden sm:ml-6 md:block">
@@ -105,19 +108,24 @@ const Navbar: FC = () => {
             </div>
           </div>
           <Link
-            href="/"
             className={cn('md:hidden', !currentProfile?.id && 'ml-[60px]')}
+            href="/"
           >
             <img
-              className="h-7 w-7"
-              height={32}
-              width={32}
-              src={isPride ? '/pride.png' : '/logo.png'}
               alt="Logo"
+              className="size-7"
+              height={32}
+              src={isPride ? '/pride.png' : '/logo.png'}
+              width={32}
             />
           </Link>
           <div className="flex items-center gap-4">
-            {currentProfile ? <NotificationIcon /> : null}
+            {currentProfile ? (
+              <>
+                <ModIcon />
+                <NotificationIcon />
+              </>
+            ) : null}
             <MenuItems />
           </div>
         </div>

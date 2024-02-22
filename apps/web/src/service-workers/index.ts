@@ -2,8 +2,8 @@ declare let self: ServiceWorkerGlobalScope;
 
 const impressionsEndpoint = 'https://api.hey.xyz/leafwatch/impressions';
 const publicationsVisibilityInterval = 5000;
-let viewerId: string | null = null;
-let visiblePublicationsSet = new Set();
+let viewerId: null | string = null;
+const visiblePublicationsSet = new Set();
 
 const sendVisiblePublicationsToServer = () => {
   const publicationsToSend = Array.from(visiblePublicationsSet);
@@ -11,13 +11,13 @@ const sendVisiblePublicationsToServer = () => {
   if (publicationsToSend.length > 0 && viewerId) {
     visiblePublicationsSet.clear();
     fetch(impressionsEndpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        viewer_id: viewerId,
-        ids: publicationsToSend
+        ids: publicationsToSend,
+        viewer_id: viewerId
       }),
-      keepalive: true
+      headers: { 'Content-Type': 'application/json' },
+      keepalive: true,
+      method: 'POST'
     })
       .then(() => {})
       .catch(() => {});

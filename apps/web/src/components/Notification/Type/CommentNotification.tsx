@@ -1,15 +1,16 @@
+import type { CommentNotification as TCommentNotification } from '@hey/lens';
+import type { FC } from 'react';
+
 import Markup from '@components/Shared/Markup';
 import { ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline';
-import { CommentNotification } from '@hey/lens';
 import getPublicationData from '@hey/lib/getPublicationData';
 import Link from 'next/link';
-import type { FC } from 'react';
 
 import AggregatedNotificationTitle from '../AggregatedNotificationTitle';
 import { NotificationProfileAvatar } from '../Profile';
 
 interface CommentNotificationProps {
-  notification: CommentNotification;
+  notification: TCommentNotification;
 }
 
 const CommentNotification: FC<CommentNotificationProps> = ({
@@ -26,7 +27,7 @@ const CommentNotification: FC<CommentNotificationProps> = ({
   return (
     <div className="space-y-2">
       <div className="flex items-center space-x-3">
-        <ChatBubbleLeftRightIcon className="text-brand-500/70 h-6 w-6" />
+        <ChatBubbleLeftRightIcon className="text-brand-500/70 size-6" />
         <div className="flex items-center space-x-1">
           <NotificationProfileAvatar profile={firstProfile} />
         </div>
@@ -34,13 +35,13 @@ const CommentNotification: FC<CommentNotificationProps> = ({
       <div className="ml-9">
         <AggregatedNotificationTitle
           firstProfile={firstProfile}
+          linkToType={`/posts/${notification?.comment?.id}`}
           text={text}
           type={type}
-          linkToType={`/posts/${notification?.comment?.id}`}
         />
         <Link
-          href={`/posts/${notification?.comment?.id}`}
           className="ld-text-gray-500 linkify mt-2 line-clamp-2"
+          href={`/posts/${notification?.comment?.id}`}
         >
           <Markup mentions={notification.comment.profilesMentioned}>
             {filteredContent}

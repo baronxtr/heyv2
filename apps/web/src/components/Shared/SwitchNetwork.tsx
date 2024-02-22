@@ -1,38 +1,37 @@
+import type { FC } from 'react';
+
 import { ArrowsRightLeftIcon } from '@heroicons/react/24/outline';
 import { SYSTEM } from '@hey/data/tracking';
 import { Button } from '@hey/ui';
 import { Leafwatch } from '@lib/leafwatch';
-import { type FC } from 'react';
-import { useSwitchNetwork } from 'wagmi';
+import { useSwitchChain } from 'wagmi';
 
 interface SwitchNetworkProps {
-  toChainId: number;
-  title?: string;
   className?: string;
   onSwitch?: () => void;
+  title?: string;
+  toChainId: number;
 }
 
 const SwitchNetwork: FC<SwitchNetworkProps> = ({
-  toChainId,
-  title = 'Switch Network',
   className = '',
-  onSwitch
+  onSwitch,
+  title = 'Switch Network',
+  toChainId
 }) => {
-  const { switchNetwork } = useSwitchNetwork();
+  const { switchChain } = useSwitchChain();
 
   return (
     <Button
       className={className}
-      type="button"
-      variant="danger"
-      icon={<ArrowsRightLeftIcon className="h-4 w-4" />}
+      icon={<ArrowsRightLeftIcon className="size-4" />}
       onClick={() => {
         onSwitch?.();
-        switchNetwork?.(toChainId);
-        Leafwatch.track(SYSTEM.SWITCH_NETWORK, {
-          chain: toChainId
-        });
+        switchChain?.({ chainId: toChainId });
+        Leafwatch.track(SYSTEM.SWITCH_NETWORK, { chain: toChainId });
       }}
+      type="button"
+      variant="danger"
     >
       {title}
     </Button>

@@ -1,32 +1,32 @@
+import type { FollowingRequest, Profile } from '@hey/lens';
+import type { FC } from 'react';
+
 import Loader from '@components/Shared/Loader';
 import UserProfile from '@components/Shared/UserProfile';
 import { UsersIcon } from '@heroicons/react/24/outline';
-import { FollowUnfollowSource } from '@hey/data/tracking';
-import type { FollowingRequest, Profile } from '@hey/lens';
+import { ProfileLinkSource } from '@hey/data/tracking';
 import { LimitType, useFollowingQuery } from '@hey/lens';
-import getProfile from '@hey/lib/getProfile';
 import { EmptyState, ErrorMessage } from '@hey/ui';
 import { motion } from 'framer-motion';
-import { type FC } from 'react';
 import { Virtuoso } from 'react-virtuoso';
 import useProfileStore from 'src/store/persisted/useProfileStore';
 
 interface FollowingProps {
-  profile: Profile;
-  onProfileSelected?: (profile: Profile) => void;
+  handle: string;
+  profileId: string;
 }
 
-const Following: FC<FollowingProps> = ({ profile, onProfileSelected }) => {
+const Following: FC<FollowingProps> = ({ handle, profileId }) => {
   // Variables
   const request: FollowingRequest = {
-    for: profile.id,
+    for: profileId,
     limit: LimitType.TwentyFive
   };
   const currentProfile = useProfileStore((state) => state.currentProfile);
 
-  const { data, loading, error, fetchMore } = useFollowingQuery({
-    variables: { request },
-    skip: !profile?.id
+  const { data, error, fetchMore, loading } = useFollowingQuery({
+    skip: !profileId,
+    variables: { request }
   });
 
   const followings = data?.following?.items;
@@ -50,16 +50,14 @@ const Following: FC<FollowingProps> = ({ profile, onProfileSelected }) => {
   if (followings?.length === 0) {
     return (
       <EmptyState
+        hideCard
+        icon={<UsersIcon className="text-brand-500 size-8" />}
         message={
           <div>
-            <span className="mr-1 font-bold">
-              {getProfile(profile).slugWithPrefix}
-            </span>
+            <span className="mr-1 font-bold">{handle}</span>
             <span>doesn’t follow anyone.</span>
           </div>
         }
-        icon={<UsersIcon className="text-brand-500 h-8 w-8" />}
-        hideCard
       />
     );
   }
@@ -67,42 +65,29 @@ const Following: FC<FollowingProps> = ({ profile, onProfileSelected }) => {
   return (
     <div className="max-h-[80vh] overflow-y-auto">
       <ErrorMessage
-        title="Failed to load following"
-        error={error}
         className="m-5"
+        error={error}
+        title="Failed to load following"
       />
       <Virtuoso
         className="virtual-profile-list"
         data={followings}
         endReached={onEndReached}
-        itemContent={(index, following) => {
+        itemContent={(_, following) => {
           return (
             <motion.div
-              initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
+              className="p-5"
               exit={{ opacity: 0 }}
-              className={`p-5 ${
-                onProfileSelected &&
-                'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-900'
-              }`}
-              onClick={
-                onProfileSelected && following
-                  ? () => {
-                      onProfileSelected(following as Profile);
-                    }
-                  : undefined
-              }
+              initial={{ opacity: 0 }}
             >
               <UserProfile
                 profile={following as Profile}
-                linkToProfile={!onProfileSelected}
-                isFollowing={following.operations.isFollowedByMe.value}
-                followUnfollowPosition={index + 1}
-                followUnfollowSource={FollowUnfollowSource.FOLLOWING_MODAL}
                 showBio
                 showFollow={currentProfile?.id !== following.id}
                 showUnfollow={currentProfile?.id !== following.id}
                 showUserPreview={false}
+                source={ProfileLinkSource.Following}
               />
             </motion.div>
           );

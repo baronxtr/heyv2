@@ -1,64 +1,73 @@
+import type { Profile } from '@hey/lens';
+import type { FC } from 'react';
+
 import {
   CheckBadgeIcon,
   ExclamationCircleIcon
 } from '@heroicons/react/24/solid';
-import type { Profile } from '@hey/lens';
+import formatRelativeOrAbsolute from '@hey/lib/datetime/formatRelativeOrAbsolute';
 import getAvatar from '@hey/lib/getAvatar';
+import getLennyURL from '@hey/lib/getLennyURL';
 import getProfile from '@hey/lib/getProfile';
 import hasMisused from '@hey/lib/hasMisused';
 import { Image } from '@hey/ui';
 import cn from '@hey/ui/cn';
-import { getTwitterFormat } from '@lib/formatTime';
 import isVerified from '@lib/isVerified';
 import Link from 'next/link';
-import type { FC } from 'react';
 import { memo } from 'react';
 
 import Slug from './Slug';
 
 interface UserProfileProps {
-  profile: Profile;
-  timestamp?: Date;
-  smallAvatar?: boolean;
+  hideSlug?: boolean;
   linkToProfile?: boolean;
+  profile: Profile;
+  smallAvatar?: boolean;
+  timestamp?: Date;
 }
 
 const SmallUserProfile: FC<UserProfileProps> = ({
+  hideSlug = false,
+  linkToProfile = false,
   profile,
-  timestamp = '',
   smallAvatar = false,
-  linkToProfile = false
+  timestamp = ''
 }) => {
   const UserAvatar = () => (
     <Image
-      src={getAvatar(profile)}
-      loading="lazy"
+      alt={profile.id}
       className={cn(
-        smallAvatar ? 'h-5 w-5' : 'h-6 w-6',
+        smallAvatar ? 'size-4' : 'size-6',
         'rounded-full border bg-gray-200 dark:border-gray-700'
       )}
-      height={smallAvatar ? 20 : 24}
-      width={smallAvatar ? 20 : 24}
-      alt={profile.id}
+      height={smallAvatar ? 16 : 24}
+      loading="lazy"
+      onError={({ currentTarget }) => {
+        currentTarget.src = getLennyURL(profile.id);
+      }}
+      src={getAvatar(profile)}
+      width={smallAvatar ? 16 : 24}
     />
   );
 
   const UserName = () => (
     <div className="flex max-w-full flex-wrap items-center">
-      <div className="mr-2 max-w-[75%] truncate">
+      <div className={cn(!hideSlug && 'mr-2 max-w-[75%]', 'truncate')}>
         {getProfile(profile).displayName}
       </div>
       {isVerified(profile.id) ? (
-        <CheckBadgeIcon className="text-brand-500 mr-1 h-4 w-4" />
+        <CheckBadgeIcon className="text-brand-500 mr-1 size-4" />
       ) : null}
       {hasMisused(profile.id) ? (
-        <ExclamationCircleIcon className="mr-2 h-4 w-4 text-red-500" />
+        <ExclamationCircleIcon className="mr-2 size-4 text-red-500" />
       ) : null}
-      <Slug className="text-sm" slug={getProfile(profile).slugWithPrefix} />
+      {!hideSlug ? (
+        <Slug className="text-sm" slug={getProfile(profile).slugWithPrefix} />
+      ) : null}
       {timestamp ? (
         <span className="ld-text-gray-500">
           <span className="mx-1.5">·</span>
-          <span className="text-xs">{getTwitterFormat(timestamp)}</span>
+          <span className="text-xs">{formatRelativeOrAbsolute(timestamp)}</span>
         </span>
       ) : null}
     </div>

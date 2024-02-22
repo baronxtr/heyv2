@@ -1,25 +1,23 @@
+import type { FC } from 'react';
+
 import cn from '@hey/ui/cn';
-import { type FC } from 'react';
 
 interface UserProfileShimmerProps {
-  showFollow?: boolean;
   isBig?: boolean;
+  showFollow?: boolean;
 }
 
 const UserProfileShimmer: FC<UserProfileShimmerProps> = ({
-  showFollow = false,
-  isBig = false
+  isBig = false,
+  showFollow = false
 }) => {
   return (
-    <div className="flex items-center justify-between py-1">
+    <div className="flex items-center justify-between">
       <div className="flex items-center space-x-3">
         <div
-          className={cn(
-            isBig ? 'h-14 w-14' : 'h-10 w-10',
-            'shimmer rounded-full'
-          )}
+          className={cn(isBig ? 'size-14' : 'size-11', 'shimmer rounded-full')}
         />
-        <div className="space-y-3">
+        <div className="space-y-4 py-1">
           <div className="shimmer h-3 w-28 rounded-lg" />
           <div className="shimmer h-3 w-20 rounded-lg" />
           {isBig ? <div className="shimmer h-3 w-48 rounded-lg" /> : null}

@@ -1,26 +1,29 @@
+import type { FC } from 'react';
+
 import { BRAND_COLOR, COVER, STATIC_IMAGES_URL } from '@hey/data/constants';
 import imageKit from '@hey/lib/imageKit';
 import sanitizeDStorageUrl from '@hey/lib/sanitizeDStorageUrl';
-import { type FC } from 'react';
 
 interface CoverProps {
   cover: string;
 }
 
 const Cover: FC<CoverProps> = ({ cover }) => {
+  const hasCover = !cover.includes(STATIC_IMAGES_URL);
+
   return (
     <div
-      className="h-52 sm:h-80"
+      className="h-52 sm:h-[350px]"
       style={{
+        backgroundColor: BRAND_COLOR,
         backgroundImage: `url(${
-          cover
+          hasCover
             ? imageKit(sanitizeDStorageUrl(cover), COVER)
             : `${STATIC_IMAGES_URL}/patterns/2.svg`
         })`,
-        backgroundColor: BRAND_COLOR,
-        backgroundSize: cover ? 'cover' : '30%',
         backgroundPosition: 'center center',
-        backgroundRepeat: cover ? 'no-repeat' : 'repeat'
+        backgroundRepeat: hasCover ? 'no-repeat' : 'repeat',
+        backgroundSize: hasCover ? 'cover' : '30%'
       }}
     />
   );

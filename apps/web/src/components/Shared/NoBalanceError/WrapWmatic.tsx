@@ -1,18 +1,21 @@
-import { InboxIcon } from '@heroicons/react/24/outline';
 import type { Amount } from '@hey/lens';
+import type { FC, ReactNode } from 'react';
+
+import { InboxIcon } from '@heroicons/react/24/outline';
 import { Button, Spinner } from '@hey/ui';
 import errorToast from '@lib/errorToast';
-import { type FC, useState } from 'react';
+import { useState } from 'react';
 import { parseEther } from 'viem';
-import { useContractWrite } from 'wagmi';
+import { useWriteContract } from 'wagmi';
 
 import IndexStatus from '../IndexStatus';
 
 interface WrapWmaticProps {
+  errorMessage?: ReactNode;
   moduleAmount: Amount;
 }
 
-const WrapWmatic: FC<WrapWmaticProps> = ({ moduleAmount }) => {
+const WrapWmatic: FC<WrapWmaticProps> = ({ errorMessage, moduleAmount }) => {
   const [isLoading, setIsLoading] = useState(false);
 
   const amount = moduleAmount?.value;
@@ -24,40 +27,45 @@ const WrapWmatic: FC<WrapWmaticProps> = ({ moduleAmount }) => {
     errorToast(error);
   };
 
-  const { data, writeAsync } = useContractWrite({
-    address: assetAddress,
-    abi: [
-      {
-        anonymous: false,
-        inputs: [
-          {
-            indexed: true,
-            name: 'dst',
-            type: 'address'
-          },
-          {
-            indexed: false,
-            name: 'wad',
-            type: 'uint256'
-          }
-        ],
-        name: 'Deposit',
-        type: 'event'
-      },
-      {
-        constant: false,
-        inputs: [],
-        name: 'deposit',
-        outputs: [],
-        payable: true,
-        stateMutability: 'payable',
-        type: 'function'
-      }
-    ],
-    functionName: 'deposit',
-    value: parseEther(amount),
-    onError
+  const { data: writeHash, writeContractAsync } = useWriteContract({
+    mutation: { onError }
   });
+
+  const writeAsync = () => {
+    return writeContractAsync({
+      abi: [
+        {
+          anonymous: false,
+          inputs: [
+            {
+              indexed: true,
+              name: 'dst',
+              type: 'address'
+            },
+            {
+              indexed: false,
+              name: 'wad',
+              type: 'uint256'
+            }
+          ],
+          name: 'Deposit',
+          type: 'event'
+        },
+        {
+          constant: false,
+          inputs: [],
+          name: 'deposit',
+          outputs: [],
+          payable: true,
+          stateMutability: 'payable',
+          type: 'function'
+        }
+      ],
+      address: assetAddress,
+      functionName: 'deposit',
+      value: parseEther(amount)
+    });
+  };
 
   const deposit = async () => {
     try {
@@ -72,26 +80,32 @@ const WrapWmatic: FC<WrapWmaticProps> = ({ moduleAmount }) => {
 
   return (
     <div className="space-y-1">
-      {data?.hash ? (
+      {writeHash ? (
         <IndexStatus
-          txHash={data.hash}
           message={`Wrapping MATIC to ${currency}...`}
+          txHash={writeHash}
         />
       ) : (
         <>
           <div className="mb-1 text-sm">
-            You don't have enough <b>{currency}</b>
+            {errorMessage ? (
+              errorMessage
+            ) : (
+              <span>
+                You don't have enough <b>{currency}</b>
+              </span>
+            )}
           </div>
           <Button
-            onClick={deposit}
+            disabled={isLoading}
             icon={
               isLoading ? (
                 <Spinner size="xs" />
               ) : (
-                <InboxIcon className="h-4 w-4" />
+                <InboxIcon className="size-4" />
               )
             }
-            disabled={isLoading}
+            onClick={deposit}
           >
             Wrap MATIC to {currency}
           </Button>

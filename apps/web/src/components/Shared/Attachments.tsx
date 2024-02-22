@@ -1,12 +1,13 @@
+import type { MetadataAsset } from '@hey/types/misc';
+import type { FC } from 'react';
+
 import { ATTACHMENT } from '@hey/data/constants';
 import { PUBLICATION } from '@hey/data/tracking';
 import imageKit from '@hey/lib/imageKit';
 import stopEventPropagation from '@hey/lib/stopEventPropagation';
-import type { MetadataAsset } from '@hey/types/misc';
 import { Image, LightBox } from '@hey/ui';
 import cn from '@hey/ui/cn';
 import { Leafwatch } from '@lib/leafwatch';
-import type { FC } from 'react';
 import { memo, useState } from 'react';
 
 import Audio from './Audio';
@@ -18,12 +19,16 @@ const getClass = (attachments: number) => {
       aspect: '',
       row: 'grid-cols-1 grid-rows-1'
     };
-  } else if (attachments === 2) {
+  }
+
+  if (attachments === 2) {
     return {
       aspect: 'aspect-w-16 aspect-h-12',
       row: 'grid-cols-2 grid-rows-1'
     };
-  } else if (attachments > 2) {
+  }
+
+  if (attachments > 2) {
     return {
       aspect: 'aspect-w-16 aspect-h-12',
       row: 'grid-cols-2 grid-rows-2'
@@ -32,17 +37,17 @@ const getClass = (attachments: number) => {
 };
 
 interface MetadataAttachment {
+  type: 'Audio' | 'Image' | 'Video';
   uri: string;
-  type: 'Image' | 'Video' | 'Audio';
 }
 
 interface AttachmentsProps {
-  attachments: MetadataAttachment[];
   asset?: MetadataAsset;
+  attachments: MetadataAttachment[];
 }
 
-const Attachments: FC<AttachmentsProps> = ({ attachments, asset }) => {
-  const [expandedImage, setExpandedImage] = useState<string | null>(null);
+const Attachments: FC<AttachmentsProps> = ({ asset, attachments }) => {
+  const [expandedImage, setExpandedImage] = useState<null | string>(null);
   const processedAttachments = attachments.slice(0, 4);
 
   const assetIsImage = asset?.type === 'Image';
@@ -54,22 +59,28 @@ const Attachments: FC<AttachmentsProps> = ({ attachments, asset }) => {
   );
 
   const determineDisplay = ():
-    | 'displayVideoAsset'
     | 'displayAudioAsset'
     | 'displayImageAsset'
+    | 'displayVideoAsset'
     | MetadataAttachment[]
     | null => {
     if (assetIsVideo) {
       return 'displayVideoAsset';
-    } else if (assetIsAudio) {
+    }
+
+    if (assetIsAudio) {
       return 'displayAudioAsset';
-    } else if (attachmentsHasImage) {
+    }
+
+    if (attachmentsHasImage) {
       const imageAttachments = processedAttachments.filter(
         (attachment) => attachment.type === 'Image'
       );
 
       return imageAttachments;
-    } else if (assetIsImage) {
+    }
+
+    if (assetIsImage) {
       return 'displayImageAsset';
     }
 
@@ -80,21 +91,21 @@ const Attachments: FC<AttachmentsProps> = ({ attachments, asset }) => {
 
   const ImageComponent = ({ uri }: { uri: string }) => (
     <Image
+      alt={imageKit(uri, ATTACHMENT)}
       className="cursor-pointer rounded-lg border bg-gray-100 object-cover dark:border-gray-700 dark:bg-gray-800"
-      loading="lazy"
       height={1000}
-      width={1000}
-      onError={({ currentTarget }) => {
-        currentTarget.src = uri;
-      }}
+      loading="lazy"
       onClick={() => {
         setExpandedImage(uri);
         Leafwatch.track(PUBLICATION.ATTACHMENT.IMAGE.OPEN, {
           // publication_id: publication?.id
         });
       }}
+      onError={({ currentTarget }) => {
+        currentTarget.src = uri;
+      }}
       src={imageKit(uri, ATTACHMENT)}
-      alt={imageKit(uri, ATTACHMENT)}
+      width={1000}
     />
   );
 
@@ -115,7 +126,6 @@ const Attachments: FC<AttachmentsProps> = ({ attachments, asset }) => {
           {displayDecision.map((attachment, index) => {
             return (
               <div
-                key={index}
                 className={cn(
                   `${getClass(displayDecision.length)?.aspect} ${
                     displayDecision.length === 3 && index === 0
@@ -124,6 +134,7 @@ const Attachments: FC<AttachmentsProps> = ({ attachments, asset }) => {
                   }`,
                   { 'w-2/3': displayDecision.length === 1 }
                 )}
+                key={attachment.uri}
                 onClick={stopEventPropagation}
               >
                 <ImageComponent uri={attachment.uri} />
@@ -133,21 +144,21 @@ const Attachments: FC<AttachmentsProps> = ({ attachments, asset }) => {
         </div>
       )}
       {displayDecision === 'displayVideoAsset' && (
-        <Video src={asset?.uri as string} poster={asset?.cover} />
+        <Video poster={asset?.cover} src={asset?.uri as string} />
       )}
       {displayDecision === 'displayAudioAsset' && (
         <Audio
-          src={asset?.uri as string}
-          poster={asset?.cover as string}
           artist={asset?.artist}
-          title={asset?.title}
           expandCover={setExpandedImage}
+          poster={asset?.cover as string}
+          src={asset?.uri as string}
+          title={asset?.title}
         />
       )}
       <LightBox
+        onClose={() => setExpandedImage(null)}
         show={Boolean(expandedImage)}
         url={expandedImage}
-        onClose={() => setExpandedImage(null)}
       />
     </div>
   );

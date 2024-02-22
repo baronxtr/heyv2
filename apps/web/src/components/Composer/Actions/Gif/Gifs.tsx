@@ -1,8 +1,9 @@
-import { GIPHY_KEY } from '@hey/data/constants';
 import type { IGif } from '@hey/types/giphy';
+import type { FC } from 'react';
+
+import { GIPHY_KEY } from '@hey/data/constants';
+import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { type FC } from 'react';
-import { useInfiniteQuery } from 'wagmi';
 
 interface CategoriesProps {
   debouncedGifInput: string;
@@ -23,31 +24,31 @@ const Gifs: FC<CategoriesProps> = ({
     setShowModal(false);
   };
 
-  const fetchGifs = async (input: string, offset: number) => {
+  const fetchGifs = async (input: string): Promise<IGif[]> => {
     try {
       const response = await axios.get('https://api.giphy.com/v1/gifs/search', {
-        params: { api_key: GIPHY_KEY, q: input, limit: 48, offset }
+        params: { api_key: GIPHY_KEY, limit: 48, q: input }
       });
 
-      return response.data;
-    } catch (error) {
+      return response.data.data;
+    } catch {
       return [];
     }
   };
 
-  const { data: gifs, isFetching } = useInfiniteQuery({
-    queryKey: ['gifs', debouncedGifInput],
-    queryFn: ({ pageParam = 0 }) => fetchGifs(debouncedGifInput, pageParam),
-    enabled: !!debouncedGifInput
+  const { data: gifs, isFetching } = useQuery({
+    enabled: Boolean(debouncedGifInput),
+    queryFn: () => fetchGifs(debouncedGifInput),
+    queryKey: ['gifs', debouncedGifInput]
   });
 
   if (isFetching) {
     return (
       <div className="grid w-full grid-cols-3 gap-1 overflow-y-auto">
-        {Array.from(Array(12).keys()).map((_, index) => (
+        {Array.from(Array(12).keys()).map((key) => (
           <div
-            key={index}
             className="shimmer h-32 w-full cursor-pointer object-cover"
+            key={key}
           />
         ))}
       </div>
@@ -56,24 +57,22 @@ const Gifs: FC<CategoriesProps> = ({
 
   return (
     <div className="grid w-full grid-cols-3 gap-1 overflow-y-auto">
-      {gifs?.pages.map((page: any) =>
-        page.data.map((gif: IGif) => (
-          <button
-            type="button"
-            key={gif.id}
-            className="relative flex outline-none"
-            onClick={() => onSelectGif(gif)}
-          >
-            <img
-              className="h-32 w-full cursor-pointer object-cover"
-              height={128}
-              src={gif?.images?.original?.url}
-              alt={gif.slug}
-              draggable={false}
-            />
-          </button>
-        ))
-      )}
+      {gifs?.map((gif: IGif) => (
+        <button
+          className="relative flex outline-none"
+          key={gif.id}
+          onClick={() => onSelectGif(gif)}
+          type="button"
+        >
+          <img
+            alt={gif.slug}
+            className="h-32 w-full cursor-pointer object-cover"
+            draggable={false}
+            height={128}
+            src={gif?.images?.original?.url}
+          />
+        </button>
+      ))}
     </div>
   );
 };

@@ -32,9 +32,7 @@ export const restrictPosition = (
 };
 
 export const getDistanceBetweenPoints = (pointA: Point, pointB: Point) => {
-  return Math.sqrt(
-    Math.pow(pointA.y - pointB.y, 2) + Math.pow(pointA.x - pointB.x, 2)
-  );
+  return Math.sqrt((pointA.y - pointB.y) ** 2 + (pointA.x - pointB.x) ** 2);
 };
 
 export const computeCroppedArea = (
@@ -48,14 +46,14 @@ export const computeCroppedArea = (
     mediaSize.width / mediaSize.height < cropSize.width / cropSize.height;
   const cropSizePixels = fitWidth
     ? {
-        width: mediaSize.naturalWidth / zoom,
         height:
-          (mediaSize.naturalWidth * (cropSize.height / cropSize.width)) / zoom
+          (mediaSize.naturalWidth * (cropSize.height / cropSize.width)) / zoom,
+        width: mediaSize.naturalWidth / zoom
       }
     : {
+        height: mediaSize.naturalHeight / zoom,
         width:
-          (mediaSize.naturalHeight * (cropSize.width / cropSize.height)) / zoom,
-        height: mediaSize.naturalHeight / zoom
+          (mediaSize.naturalHeight * (cropSize.width / cropSize.height)) / zoom
       };
 
   const cropAreaCenterPixelX = (-cropPosition.x * mediaScale) / zoom;

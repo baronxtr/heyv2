@@ -1,13 +1,15 @@
+import type { MarkupLinkProps } from '@hey/types/misc';
+import type { FC } from 'react';
+
 import { STATIC_IMAGES_URL } from '@hey/data/constants';
 import { hashflags } from '@hey/data/hashflags';
 import { prideHashtags } from '@hey/data/pride-hashtags';
 import { PUBLICATION } from '@hey/data/tracking';
 import isPrideMonth from '@hey/lib/isPrideMonth';
 import stopEventPropagation from '@hey/lib/stopEventPropagation';
-import type { MarkupLinkProps } from '@hey/types/misc';
 import { Leafwatch } from '@lib/leafwatch';
 import Link from 'next/link';
-import { type FC } from 'react';
+import urlcat from 'urlcat';
 
 const Hashtag: FC<MarkupLinkProps> = ({ title }) => {
   if (!title) {
@@ -15,19 +17,21 @@ const Hashtag: FC<MarkupLinkProps> = ({ title }) => {
   }
 
   const tag = title.slice(1).toLowerCase();
-  const hasHashflag = hashflags.hasOwnProperty(tag);
+  const hasHashflag = Object.prototype.hasOwnProperty.call(hashflags, tag);
   const isPrideHashtag = isPrideMonth() ? prideHashtags.includes(tag) : false;
 
   return (
     <span className="inline-flex items-center space-x-1">
       <span>
         <Link
-          href={`/search?q=${title.slice(1)}&type=pubs&src=link_click`}
+          href={urlcat('/search', {
+            q: title,
+            src: 'link_click',
+            type: 'pubs'
+          })}
           onClick={(event) => {
             stopEventPropagation(event);
-            Leafwatch.track(PUBLICATION.CLICK_HASHTAG, {
-              hashtag: title.slice(1)
-            });
+            Leafwatch.track(PUBLICATION.CLICK_HASHTAG, { hashtag: tag });
           }}
         >
           {isPrideHashtag ? <span className="pride-text">{title}</span> : title}
@@ -35,10 +39,10 @@ const Hashtag: FC<MarkupLinkProps> = ({ title }) => {
       </span>
       {hasHashflag ? (
         <img
+          alt={tag}
           className="!mr-0.5 h-4"
           height={16}
           src={`${STATIC_IMAGES_URL}/hashflags/${hashflags[tag]}.png`}
-          alt={tag}
         />
       ) : null}
     </span>

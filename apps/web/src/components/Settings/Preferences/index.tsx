@@ -1,12 +1,14 @@
+import type { NextPage } from 'next';
+
 import MetaTags from '@components/Common/MetaTags';
 import NotLoggedIn from '@components/Shared/NotLoggedIn';
 import { APP_NAME } from '@hey/data/constants';
 import { PAGEVIEW } from '@hey/data/tracking';
 import { Card, GridItemEight, GridItemFour, GridLayout } from '@hey/ui';
+import isFeatureAvailable from '@lib/isFeatureAvailable';
 import { Leafwatch } from '@lib/leafwatch';
-import type { NextPage } from 'next';
+import { useEffect } from 'react';
 import useProfileStore from 'src/store/persisted/useProfileStore';
-import { useEffectOnce } from 'usehooks-ts';
 
 import SettingsSidebar from '../Sidebar';
 import HighSignalNotificationFilter from './HighSignalNotificationFilter';
@@ -16,9 +18,9 @@ import PushNotifications from './PushNotifications';
 const PreferencesSettings: NextPage = () => {
   const currentProfile = useProfileStore((state) => state.currentProfile);
 
-  useEffectOnce(() => {
+  useEffect(() => {
     Leafwatch.track(PAGEVIEW, { page: 'settings', subpage: 'preferences' });
-  });
+  }, []);
 
   if (!currentProfile) {
     return <NotLoggedIn />;
@@ -26,7 +28,7 @@ const PreferencesSettings: NextPage = () => {
 
   return (
     <GridLayout>
-      <MetaTags title={`Cleanup settings • ${APP_NAME}`} />
+      <MetaTags title={`Preferences settings • ${APP_NAME}`} />
       <GridItemFour>
         <SettingsSidebar />
       </GridItemFour>
@@ -42,7 +44,7 @@ const PreferencesSettings: NextPage = () => {
           <div className="divider my-5" />
           <div className="space-y-6">
             <HighSignalNotificationFilter />
-            <PushNotifications />
+            {isFeatureAvailable('push-notifications') && <PushNotifications />}
             <IsPride />
           </div>
         </Card>

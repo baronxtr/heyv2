@@ -9,4 +9,8 @@ fragment LinkMetadataV3Fields on LinkMetadataV3 {
     ...PublicationMetadataMediaFields
   }
   content
+  sharingLink
+  encryptedWith {
+    ...PublicationMetadataLitEncryptionFields
+  }
 }

@@ -1,6 +1,9 @@
+import type { FC } from 'react';
+
 import IndexStatus from '@components/Shared/IndexStatus';
 import { CheckCircleIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { LensHub } from '@hey/abis';
+import { Errors } from '@hey/data';
 import { LENSHUB_PROXY } from '@hey/data/constants';
 import { SETTINGS } from '@hey/data/tracking';
 import {
@@ -13,12 +16,14 @@ import { Button, Spinner } from '@hey/ui';
 import cn from '@hey/ui/cn';
 import errorToast from '@lib/errorToast';
 import { Leafwatch } from '@lib/leafwatch';
-import type { FC } from 'react';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
+import useHandleWrongNetwork from 'src/hooks/useHandleWrongNetwork';
 import { useNonceStore } from 'src/store/non-persisted/useNonceStore';
+import { useProfileRestriction } from 'src/store/non-persisted/useProfileRestriction';
 import useProfileStore from 'src/store/persisted/useProfileStore';
-import { useContractWrite, useSignTypedData } from 'wagmi';
+import { hydrateTbaStatus } from 'src/store/persisted/useTbaStatusStore';
+import { useSignTypedData, useWriteContract } from 'wagmi';
 
 interface ToggleLensManagerProps {
   buttonSize?: 'sm';
@@ -28,6 +33,7 @@ const ToggleLensManager: FC<ToggleLensManagerProps> = ({
   buttonSize = 'md'
 }) => {
   const currentProfile = useProfileStore((state) => state.currentProfile);
+  const { isSuspended } = useProfileRestriction();
   const lensHubOnchainSigNonce = useNonceStore(
     (state) => state.lensHubOnchainSigNonce
   );
@@ -35,7 +41,10 @@ const ToggleLensManager: FC<ToggleLensManagerProps> = ({
     (state) => state.setLensHubOnchainSigNonce
   );
   const [isLoading, setIsLoading] = useState(false);
-  const { canUseSignless, canBroadcast } =
+  const handleWrongNetwork = useHandleWrongNetwork();
+
+  const { isTba } = hydrateTbaStatus();
+  const { canBroadcast, canUseSignless } =
     checkDispatcherPermissions(currentProfile);
 
   const onCompleted = (__typename?: 'RelayError' | 'RelaySuccess') => {
@@ -53,20 +62,28 @@ const ToggleLensManager: FC<ToggleLensManagerProps> = ({
     errorToast(error);
   };
 
-  const { signTypedDataAsync } = useSignTypedData({ onError });
-  const { data: writeData, write } = useContractWrite({
-    address: LENSHUB_PROXY,
-    abi: LensHub,
-    functionName: 'changeDelegatedExecutorsConfig',
-    onSuccess: () => {
-      onCompleted();
-      setLensHubOnchainSigNonce(lensHubOnchainSigNonce + 1);
-    },
-    onError: (error) => {
-      onError(error);
-      setLensHubOnchainSigNonce(lensHubOnchainSigNonce - 1);
+  const { signTypedDataAsync } = useSignTypedData({ mutation: { onError } });
+  const { data: writeHash, writeContractAsync } = useWriteContract({
+    mutation: {
+      onError: (error) => {
+        onError(error);
+        setLensHubOnchainSigNonce(lensHubOnchainSigNonce - 1);
+      },
+      onSuccess: () => {
+        onCompleted();
+        setLensHubOnchainSigNonce(lensHubOnchainSigNonce + 1);
+      }
     }
   });
+
+  const write = async ({ args }: { args: any[] }) => {
+    return await writeContractAsync({
+      abi: LensHub,
+      address: LENSHUB_PROXY,
+      args,
+      functionName: 'changeDelegatedExecutorsConfig'
+    });
+  };
 
   const [broadcastOnchain, { data: broadcastData }] =
     useBroadcastOnchainMutation({
@@ -77,12 +94,11 @@ const ToggleLensManager: FC<ToggleLensManagerProps> = ({
     useCreateChangeProfileManagersTypedDataMutation({
       onCompleted: async ({ createChangeProfileManagersTypedData }) => {
         const { id, typedData } = createChangeProfileManagersTypedData;
-        const signature = await signTypedDataAsync(getSignature(typedData));
         const {
-          delegatorProfileId,
-          delegatedExecutors,
           approvals,
           configNumber,
+          delegatedExecutors,
+          delegatorProfileId,
           switchToGivenConfig
         } = typedData.value;
         const args = [
@@ -92,23 +108,30 @@ const ToggleLensManager: FC<ToggleLensManagerProps> = ({
           configNumber,
           switchToGivenConfig
         ];
+        await handleWrongNetwork();
 
-        if (canBroadcast) {
+        if (!isTba && canBroadcast) {
+          const signature = await signTypedDataAsync(getSignature(typedData));
           const { data } = await broadcastOnchain({
             variables: { request: { id, signature } }
           });
           if (data?.broadcastOnchain.__typename === 'RelayError') {
-            return write({ args });
+            return await write({ args });
           }
+
           return;
         }
 
-        return write({ args });
+        return await write({ args });
       },
       onError
     });
 
   const toggleDispatcher = async () => {
+    if (isSuspended) {
+      return toast.error(Errors.Suspended);
+    }
+
     try {
       setIsLoading(true);
       return await createChangeProfileManagersTypedData({
@@ -126,25 +149,25 @@ const ToggleLensManager: FC<ToggleLensManagerProps> = ({
     broadcastData?.broadcastOnchain.__typename === 'RelaySuccess' &&
     broadcastData.broadcastOnchain.txId;
 
-  return writeData?.hash || broadcastTxId ? (
+  return writeHash || broadcastTxId ? (
     <div className="mt-2">
-      <IndexStatus txHash={writeData?.hash} txId={broadcastTxId} reload />
+      <IndexStatus reload txHash={writeHash} txId={broadcastTxId} />
     </div>
   ) : (
     <Button
-      variant={canUseSignless ? 'danger' : 'primary'}
       className={cn({ 'text-sm': buttonSize === 'sm' }, 'mr-auto')}
       disabled={isLoading}
       icon={
         isLoading ? (
-          <Spinner variant={canUseSignless ? 'danger' : 'primary'} size="xs" />
+          <Spinner size="xs" variant={canUseSignless ? 'danger' : 'primary'} />
         ) : canUseSignless ? (
-          <XMarkIcon className="h-4 w-4" />
+          <XMarkIcon className="size-4" />
         ) : (
-          <CheckCircleIcon className="h-4 w-4" />
+          <CheckCircleIcon className="size-4" />
         )
       }
       onClick={toggleDispatcher}
+      variant={canUseSignless ? 'danger' : 'primary'}
     >
       {canUseSignless ? 'Disable' : 'Enable'}
     </Button>

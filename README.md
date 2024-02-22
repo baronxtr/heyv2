@@ -11,11 +11,8 @@
     <a href="https://vercel.com/heyxyz?utm_source=Hey&utm_campaign=oss">
         <img src="https://therealsujitk-vercel-badge.vercel.app/?app=heyxyz" alt="Vercel">
     </a>
-    <a href="https://deepsource.io/gh/heyxyz/hey">
-        <img src="https://deepsource.io/gh/heyxyz/hey.svg/?label=active+issues&show_trend=true" alt="GitHub actions">
-    </a>
     <a href="https://www.gitpoap.io/gh/lensterxyz">
-        <img src="https://public-api.gitpoap.io/v1/repo/heyxyz/hey/badge" alt="Gitpoap">
+        <img src="https://public-api.gitpoap.io/v1/repo/lensterxyz/hey/badge" alt="Gitpoap">
     </a>
     <a href="https://status.hey.xyz">
         <img height="20px" src="https://betteruptime.com/status-badges/v1/monitor/dfaw.svg" alt="Uptime">
@@ -32,9 +29,6 @@
     <a href="https://hey.xyz/discord">
         <img src="https://img.shields.io/discord/953679040722665512.svg?label=&logo=discord&logoColor=ffffff&color=7389D8&labelColor=6A7EC2" alt="Discord">
     </a>
-    <a href="https://github.com/orgs/heyxyz/projects/6/views/3">
-        <img src="https://img.shields.io/github/issues/heyxyz/hey/Bounty?color=8b5cf6&label=Bounties&logo=ethereum" alt="Bounties">
-    </a>
 </div>
 <div align="center">
     <br>
@@ -47,7 +41,7 @@
 
 ## 🌿 About Hey
 
-Hey is a cutting-edge social media application that leverages the power of [Lens Protocol](http://lens.xyz) 🌿 to create a decentralized and permissionless platform for users to interact, share, and engage with one another. With a focus on privacy, security, and user control, Hey aims to revolutionize the social media landscape by providing a more transparent and equitable digital environment for its users.
+Hey is a cutting-edge social media application that leverages the power of [Lens Protocol](https://lens.xyz) 🌿 to create a decentralized and permissionless platform for users to interact, share, and engage with one another. With a focus on privacy, security, and user control, Hey aims to revolutionize the social media landscape by providing a more transparent and equitable digital environment for its users.
 
 ## 📦 Environments
 
@@ -55,6 +49,7 @@ Hey is a cutting-edge social media application that leverages the power of [Lens
 | ------- | ----------------------- |
 | Mainnet | https://hey.xyz         |
 | Testnet | https://testnet.hey.xyz |
+| Staging | https://staging.hey.xyz |
 
 ## ✅ Community
 
@@ -62,7 +57,7 @@ For a place to have open discussions on features, voice your ideas, or get help 
 
 ## 📊 Repo Activity
 
-<img width="100%" src="https://repobeats.axiom.co/api/embed/af135d3dfdb3605cc3db676472ca174173ac2fb7.svg" alt="Repobeats analytics" />
+<img width="100%" src="https://repobeats.axiom.co/api/embed/8e423b6c5794e1958e33d3d8cecabd3259bd6798.svg" alt="Repobeats analytics" />
 
 ## 💕 Contributors
 

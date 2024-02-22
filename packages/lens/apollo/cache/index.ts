@@ -4,11 +4,13 @@ import result from '../../generated';
 import { profilesManagedKeyFields } from '../lib/keyFields';
 import createActedOnPublicationFieldPolicy from './createActedOnPublicationFieldPolicy';
 import createApprovedAuthenticationsFieldPolicy from './createApprovedAuthenticationsFieldPolicy';
+import createExploreProfilesFieldPolicy from './createExploreProfilesFieldPolicy';
 import createExplorePublicationsFieldPolicy from './createExplorePublicationsFieldPolicy';
 import createFeedFieldPolicy from './createFeedFieldPolicy';
 import createFeedHighlightsFieldPolicy from './createFeedHighlightsFieldPolicy';
 import createFollowersFieldPolicy from './createFollowersFieldPolicy';
 import createFollowingFieldPolicy from './createFollowingFieldPolicy';
+import createLatestPaidActionsFieldPolicy from './createLatestPaidActionsFieldPolicy';
 import createMutualFollowersProfilesFieldPolicy from './createMutualFollowersProfilesFieldPolicy';
 import createNftsFieldPolicy from './createNftsFieldPolicy';
 import createNotificationsFieldPolicy from './createNotificationsFieldPolicy';
@@ -27,25 +29,27 @@ const cache = new InMemoryCache({
     ProfilesManagedResult: { keyFields: profilesManagedKeyFields },
     Query: {
       fields: {
+        approvedAuthentications: createApprovedAuthenticationsFieldPolicy(),
+        exploreProfiles: createExploreProfilesFieldPolicy(),
+        explorePublications: createExplorePublicationsFieldPolicy(),
         feed: createFeedFieldPolicy(),
         feedHighlights: createFeedHighlightsFieldPolicy(),
-        explorePublications: createExplorePublicationsFieldPolicy(),
-        publications: createPublicationsFieldPolicy(),
-        publicationsProfileBookmarks: createPublicationsFieldPolicy(),
-        nfts: createNftsFieldPolicy(),
-        notifications: createNotificationsFieldPolicy(),
         followers: createFollowersFieldPolicy(),
         following: createFollowingFieldPolicy(),
+        latestPaidActions: createLatestPaidActionsFieldPolicy(),
+        mutualFollowersProfiles: createMutualFollowersProfilesFieldPolicy(),
+        nfts: createNftsFieldPolicy(),
+        notifications: createNotificationsFieldPolicy(),
+        profileActionHistory: createProfileActionHistoryFieldPolicy(),
+        profileManagers: createProfileManagersFieldPolicy(),
         profiles: createProfilesFieldPolicy(),
+        profilesManaged: createProfilesManagedFieldPolicy(),
+        publications: createPublicationsFieldPolicy(),
+        publicationsProfileBookmarks: createPublicationsFieldPolicy(),
         searchProfiles: createSearchProfilesFieldPolicy(),
         searchPublications: createSearchPublicationsPolicy(),
         whoActedOnPublication: createActedOnPublicationFieldPolicy(),
-        whoHaveBlocked: createWhoHaveBlockedFieldPolicy(),
-        mutualFollowersProfiles: createMutualFollowersProfilesFieldPolicy(),
-        approvedAuthentications: createApprovedAuthenticationsFieldPolicy(),
-        profileActionHistory: createProfileActionHistoryFieldPolicy(),
-        profileManagers: createProfileManagersFieldPolicy(),
-        profilesManaged: createProfilesManagedFieldPolicy()
+        whoHaveBlocked: createWhoHaveBlockedFieldPolicy()
       }
     }
   }

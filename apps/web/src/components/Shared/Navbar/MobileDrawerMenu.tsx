@@ -1,27 +1,30 @@
+import type { Profile } from '@hey/lens';
+import type { FC } from 'react';
+
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { FeatureFlag } from '@hey/data/feature-flags';
-import type { Profile } from '@hey/lens';
+import { KillSwitch } from '@hey/data/kill-switches';
 import getAvatar from '@hey/lib/getAvatar';
+import getLennyURL from '@hey/lib/getLennyURL';
 import getProfile from '@hey/lib/getProfile';
 import { Image } from '@hey/ui';
 import cn from '@hey/ui/cn';
+import isFeatureAvailable from '@lib/isFeatureAvailable';
 import isFeatureEnabled from '@lib/isFeatureEnabled';
 import Link from 'next/link';
-import type { FC } from 'react';
 import { useGlobalModalStateStore } from 'src/store/non-persisted/useGlobalModalStateStore';
 import useProfileStore from 'src/store/persisted/useProfileStore';
 
 import Slug from '../Slug';
 import AppVersion from './NavItems/AppVersion';
 import Bookmarks from './NavItems/Bookmarks';
+import CreateGroup from './NavItems/CreateGroup';
 import GardenerMode from './NavItems/GardenerMode';
 import Invites from './NavItems/Invites';
 import Logout from './NavItems/Logout';
-import Mod from './NavItems/Mod';
-import Pro from './NavItems/Pro';
-import ReportBug from './NavItems/ReportBug';
 import Settings from './NavItems/Settings';
 import StaffMode from './NavItems/StaffMode';
+import Support from './NavItems/Support';
 import SwitchProfile from './NavItems/SwitchProfile';
 import ThemeSwitch from './NavItems/ThemeSwitch';
 import YourProfile from './NavItems/YourProfile';
@@ -39,21 +42,24 @@ const MobileDrawerMenu: FC = () => {
   const itemClass = 'py-3 hover:bg-gray-100 dark:hover:bg-gray-800';
 
   return (
-    <div className="no-scrollbar fixed inset-0 z-10 h-full w-full overflow-y-auto bg-gray-100 py-4 dark:bg-black md:hidden">
-      <button className="px-5" type="button" onClick={closeDrawer}>
-        <XMarkIcon className="h-6 w-6" />
+    <div className="no-scrollbar fixed inset-0 z-10 h-full w-full overflow-y-auto bg-gray-100 py-4 md:hidden dark:bg-black">
+      <button className="px-5" onClick={closeDrawer} type="button">
+        <XMarkIcon className="size-6" />
       </button>
       <div className="w-full space-y-2">
         <Link
-          onClick={closeDrawer}
-          href={getProfile(currentProfile).link}
           className="mt-2 flex items-center space-x-2 px-5 py-3 hover:bg-gray-200 dark:hover:bg-gray-800"
+          href={getProfile(currentProfile).link}
+          onClick={closeDrawer}
         >
           <div className="flex w-full space-x-1.5">
             <Image
-              src={getAvatar(currentProfile as Profile)}
-              className="h-12 w-12 cursor-pointer rounded-full border dark:border-gray-700"
               alt={currentProfile?.id}
+              className="size-12 cursor-pointer rounded-full border dark:border-gray-700"
+              onError={({ currentTarget }) => {
+                currentTarget.src = getLennyURL(currentProfile?.id);
+              }}
+              src={getAvatar(currentProfile as Profile)}
             />
             <div>
               Logged in as
@@ -84,16 +90,12 @@ const MobileDrawerMenu: FC = () => {
               className={cn(itemClass, 'px-4')}
               onClick={closeDrawer}
             />
-            {isFeatureEnabled(FeatureFlag.Gardener) ? (
-              <Link href="/mod" onClick={closeDrawer}>
-                <Mod className={cn(itemClass, 'px-4')} />
-              </Link>
-            ) : null}
-            <Invites className={cn(itemClass, 'px-4')} />
-            {isFeatureEnabled(FeatureFlag.Pro) && (
-              <Link href="/pro" onClick={closeDrawer}>
-                <Pro className={cn(itemClass, 'px-4')} />
-              </Link>
+            <CreateGroup
+              className={cn(itemClass, 'px-4')}
+              onClick={closeDrawer}
+            />
+            {isFeatureEnabled(KillSwitch.Invites) && (
+              <Invites className={cn(itemClass, 'px-4')} />
             )}
             <ThemeSwitch
               className={cn(itemClass, 'px-4')}
@@ -104,7 +106,7 @@ const MobileDrawerMenu: FC = () => {
         </div>
         <div className="bg-white dark:bg-gray-900">
           <div className="divider" />
-          <ReportBug className={cn(itemClass, 'px-4')} onClick={closeDrawer} />
+          <Support className={cn(itemClass, 'px-4')} onClick={closeDrawer} />
           <div className="divider" />
         </div>
 
@@ -112,27 +114,27 @@ const MobileDrawerMenu: FC = () => {
           <div className="divider" />
           <div className="hover:bg-gray-100 dark:hover:bg-gray-800">
             <Logout
-              onClick={closeDrawer}
               className={cn(itemClass, 'px-4 py-3')}
+              onClick={closeDrawer}
             />
           </div>
           <div className="divider" />
-          {isFeatureEnabled(FeatureFlag.Gardener) ? (
+          {isFeatureAvailable(FeatureFlag.Gardener) ? (
             <>
               <div
-                onClick={closeDrawer}
                 className="hover:bg-gray-200 dark:hover:bg-gray-800"
+                onClick={closeDrawer}
               >
                 <GardenerMode className={cn(itemClass, 'px-4 py-3')} />
               </div>
               <div className="divider" />
             </>
           ) : null}
-          {isFeatureEnabled(FeatureFlag.Staff) ? (
+          {isFeatureAvailable(FeatureFlag.Staff) ? (
             <>
               <div
-                onClick={closeDrawer}
                 className="hover:bg-gray-200 dark:hover:bg-gray-800"
+                onClick={closeDrawer}
               >
                 <StaffMode className={cn(itemClass, 'px-4 py-3')} />
               </div>

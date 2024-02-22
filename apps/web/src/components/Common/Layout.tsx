@@ -1,23 +1,23 @@
+import type { Profile } from '@hey/lens';
+
 import GlobalAlerts from '@components/Shared/GlobalAlerts';
 import GlobalBanners from '@components/Shared/GlobalBanners';
 import BottomNavigation from '@components/Shared/Navbar/BottomNavigation';
-import type { Profile } from '@hey/lens';
+import PageMetatags from '@components/Shared/PageMetatags';
 import { useCurrentProfileQuery } from '@hey/lens';
 import getCurrentSession from '@lib/getCurrentSession';
 import getToastOptions from '@lib/getToastOptions';
-import Head from 'next/head';
+import { useIsClient } from '@uidotdev/usehooks';
 import { useTheme } from 'next-themes';
-import { type FC, type ReactNode } from 'react';
+import { type FC, type ReactNode, useEffect } from 'react';
 import { Toaster } from 'react-hot-toast';
-import { useFeatureFlagsStore } from 'src/store/non-persisted/useFeatureFlagsStore';
 import { useNonceStore } from 'src/store/non-persisted/useNonceStore';
 import { usePreferencesStore } from 'src/store/non-persisted/usePreferencesStore';
-import { useProStore } from 'src/store/non-persisted/useProStore';
 import { hydrateAuthTokens, signOut } from 'src/store/persisted/useAuthStore';
+import { useFeatureFlagsStore } from 'src/store/persisted/useFeatureFlagsStore';
 import useProfileStore from 'src/store/persisted/useProfileStore';
-import { useEffectOnce, useIsMounted } from 'usehooks-ts';
 import { isAddress } from 'viem';
-import { useAccount, useDisconnect } from 'wagmi';
+import { useDisconnect } from 'wagmi';
 
 import GlobalModals from '../Shared/GlobalModals';
 import Loading from '../Shared/Loading';
@@ -40,64 +40,65 @@ const Layout: FC<LayoutProps> = ({ children }) => {
   const setLensHubOnchainSigNonce = useNonceStore(
     (state) => state.setLensHubOnchainSigNonce
   );
-  const resetPro = useProStore((state) => state.resetPro);
+  const setFallbackToCuratedFeed = useProfileStore(
+    (state) => state.setFallbackToCuratedFeed
+  );
 
-  const isMounted = useIsMounted();
-  const { connector } = useAccount();
+  const isMounted = useIsClient();
   const { disconnect } = useDisconnect();
 
   const { id: sessionProfileId } = getCurrentSession();
 
-  const logout = () => {
+  const logout = (reload = false) => {
     resetPreferences();
     resetFeatureFlags();
-    resetPro();
     signOut();
     disconnect?.();
+    if (reload) {
+      location.reload();
+    }
   };
 
   const { loading } = useCurrentProfileQuery({
-    variables: { request: { forProfileId: sessionProfileId } },
-    skip: !sessionProfileId || isAddress(sessionProfileId),
     onCompleted: ({ profile, userSigNonces }) => {
       setCurrentProfile(profile as Profile);
       setLensHubOnchainSigNonce(userSigNonces.lensHubOnchainSigNonce);
-    }
-  });
 
-  useEffectOnce(() => {
-    // Listen for switch account in wallet and logout
-    connector?.addListener('change', () => logout());
+      // If the user has no following, we should fallback to the curated feed
+      if (profile?.stats.followers === 0) {
+        setFallbackToCuratedFeed(true);
+      }
+    },
+    onError: () => logout(true),
+    skip: !sessionProfileId || isAddress(sessionProfileId),
+    variables: { request: { forProfileId: sessionProfileId } }
   });
 
   const validateAuthentication = () => {
     const { accessToken } = hydrateAuthTokens();
+
     if (!accessToken) {
       logout();
     }
   };
 
-  useEffectOnce(() => {
+  useEffect(() => {
     validateAuthentication();
-  });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const profileLoading = !currentProfile && loading;
 
-  if (profileLoading || !isMounted()) {
+  if (profileLoading || !isMounted) {
     return <Loading />;
   }
 
   return (
     <>
-      <Head>
-        <meta
-          name="theme-color"
-          content={resolvedTheme === 'dark' ? '#1b1b1d' : '#ffffff'}
-        />
-      </Head>
+      <PageMetatags />
       <Toaster
-        position="bottom-right"
         containerStyle={{ wordBreak: 'break-word' }}
+        position="bottom-right"
         toastOptions={getToastOptions(resolvedTheme)}
       />
       <GlobalModals />

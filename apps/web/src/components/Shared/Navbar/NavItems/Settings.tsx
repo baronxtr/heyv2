@@ -1,6 +1,7 @@
+import type { FC } from 'react';
+
 import { Cog6ToothIcon } from '@heroicons/react/24/outline';
 import cn from '@hey/ui/cn';
-import { type FC } from 'react';
 
 interface SettingsProps {
   className?: string;
@@ -14,7 +15,7 @@ const Settings: FC<SettingsProps> = ({ className = '' }) => {
         className
       )}
     >
-      <Cog6ToothIcon className="h-4 w-4" />
+      <Cog6ToothIcon className="size-4" />
       <div>Settings</div>
     </div>
   );

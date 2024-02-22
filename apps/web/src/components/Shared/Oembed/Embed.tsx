@@ -1,12 +1,13 @@
+import type { OG } from '@hey/types/misc';
+import type { FC } from 'react';
+
 import { ATTACHMENT } from '@hey/data/constants';
 import { PUBLICATION } from '@hey/data/tracking';
 import imageKit from '@hey/lib/imageKit';
 import stopEventPropagation from '@hey/lib/stopEventPropagation';
-import type { OG } from '@hey/types/misc';
 import { Card, Image } from '@hey/ui';
 import { Leafwatch } from '@lib/leafwatch';
 import Link from 'next/link';
-import { type FC } from 'react';
 
 interface EmbedProps {
   og: OG;
@@ -15,7 +16,7 @@ interface EmbedProps {
 
 const Embed: FC<EmbedProps> = ({ og, publicationId }) => {
   return (
-    <div className="mt-4 text-sm sm:w-4/6">
+    <div className="mt-4 w-full text-sm md:w-4/6">
       <Link
         href={og.url}
         onClick={(event) => {
@@ -25,55 +26,53 @@ const Embed: FC<EmbedProps> = ({ og, publicationId }) => {
             url: og.url
           });
         }}
-        target={og.url.includes(location.host) ? '_self' : '_blank'}
         rel="noreferrer noopener"
+        target={og.url.includes(location.host) ? '_self' : '_blank'}
       >
         <Card forceRounded>
           {og.isLarge && og.image ? (
             <Image
+              alt="Thumbnail"
               className="divider aspect-2 w-full rounded-t-xl object-cover"
               onError={({ currentTarget }) => {
                 currentTarget.src = og.image as string;
               }}
               src={imageKit(og.image, ATTACHMENT)}
-              alt="Thumbnail"
             />
           ) : null}
           <div className="flex items-center">
             {!og.isLarge && og.image ? (
               <Image
-                className="h-36 w-36 rounded-l-xl border-r dark:border-gray-700"
+                alt="Thumbnail"
+                className="size-28 rounded-l-xl border-r md:size-36 dark:border-gray-700"
                 height={144}
-                width={144}
                 onError={({ currentTarget }) => {
                   currentTarget.src = og.image as string;
                 }}
                 src={imageKit(og.image, ATTACHMENT)}
-                alt="Thumbnail"
+                width={144}
               />
             ) : null}
-            <div className="truncate p-5">
-              <div className="space-y-1.5">
+            <div className="truncate px-5 py-4">
+              <div className="space-y-1">
                 {og.title ? (
-                  <div className="truncate font-bold">{og.title}</div>
+                  <div className="flex items-center space-x-1.5">
+                    {og.favicon ? (
+                      <img
+                        alt="Favicon"
+                        className="size-4 rounded-full"
+                        height={16}
+                        src={og.favicon}
+                        title={og.site || og.url}
+                        width={16}
+                      />
+                    ) : null}
+                    <div className="truncate font-bold">{og.title}</div>
+                  </div>
                 ) : null}
                 {og.description ? (
                   <div className="ld-text-gray-500 line-clamp-1 whitespace-break-spaces">
-                    {og.description}
-                  </div>
-                ) : null}
-                {og.site ? (
-                  <div className="flex items-center space-x-2 pt-1.5">
-                    {og.favicon ? (
-                      <img
-                        className="h-4 w-4 rounded-full"
-                        height={16}
-                        width={16}
-                        src={og.favicon}
-                        alt="Favicon"
-                      />
-                    ) : null}
-                    <div className="ld-text-gray-500 text-xs">{og.site}</div>
+                    {og.description.replace(/ +/g, ' ')}
                   </div>
                 ) : null}
               </div>

@@ -1,14 +1,16 @@
+import type {
+  ApprovedAllowanceAmountResult,
+  FeeFollowModuleSettings,
+  Profile
+} from '@hey/lens';
+import type { Dispatch, FC, SetStateAction } from 'react';
+
 import AllowanceButton from '@components/Settings/Allowance/Button';
 import { StarIcon, UserIcon } from '@heroicons/react/24/outline';
 import { LensHub } from '@hey/abis';
 import { LENSHUB_PROXY, POLYGONSCAN_URL } from '@hey/data/constants';
 import { Errors } from '@hey/data/errors';
 import { PROFILE } from '@hey/data/tracking';
-import type {
-  ApprovedAllowanceAmountResult,
-  FeeFollowModuleSettings,
-  Profile
-} from '@hey/lens';
 import {
   FollowModuleType,
   useApprovedModuleAllowanceAmountQuery,
@@ -16,6 +18,7 @@ import {
   useCreateFollowTypedDataMutation,
   useProfileQuery
 } from '@hey/lens';
+import { useApolloClient } from '@hey/lens/apollo';
 import checkDispatcherPermissions from '@hey/lib/checkDispatcherPermissions';
 import formatAddress from '@hey/lib/formatAddress';
 import getProfile from '@hey/lib/getProfile';
@@ -26,36 +29,29 @@ import errorToast from '@lib/errorToast';
 import { Leafwatch } from '@lib/leafwatch';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import type { Dispatch, FC, SetStateAction } from 'react';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import useHandleWrongNetwork from 'src/hooks/useHandleWrongNetwork';
 import { useNonceStore } from 'src/store/non-persisted/useNonceStore';
+import { useProfileRestriction } from 'src/store/non-persisted/useProfileRestriction';
 import useProfileStore from 'src/store/persisted/useProfileStore';
-import { useBalance, useContractWrite, useSignTypedData } from 'wagmi';
+import { formatUnits } from 'viem';
+import { useBalance, useSignTypedData, useWriteContract } from 'wagmi';
 
 import Loader from '../Loader';
 import NoBalanceError from '../NoBalanceError';
 import Slug from '../Slug';
 
 interface FollowModuleProps {
-  profile: Profile;
-  setFollowing: (following: boolean) => void;
-  setShowFollowModal: Dispatch<SetStateAction<boolean>>;
   again: boolean;
-
-  // For data analytics
-  superFollowPosition?: number;
-  superFollowSource?: string;
+  profile: Profile;
+  setShowFollowModal: Dispatch<SetStateAction<boolean>>;
 }
 
 const FollowModule: FC<FollowModuleProps> = ({
-  profile,
-  setFollowing,
-  setShowFollowModal,
   again,
-  superFollowPosition,
-  superFollowSource
+  profile,
+  setShowFollowModal
 }) => {
   const { pathname } = useRouter();
   const lensHubOnchainSigNonce = useNonceStore(
@@ -65,25 +61,37 @@ const FollowModule: FC<FollowModuleProps> = ({
     (state) => state.setLensHubOnchainSigNonce
   );
   const currentProfile = useProfileStore((state) => state.currentProfile);
+  const { isSuspended } = useProfileRestriction();
   const [isLoading, setIsLoading] = useState(false);
   const [allowed, setAllowed] = useState(true);
 
   const handleWrongNetwork = useHandleWrongNetwork();
+  const { cache } = useApolloClient();
+
   const { canBroadcast } = checkDispatcherPermissions(currentProfile);
+
+  const updateCache = () => {
+    cache.modify({
+      fields: {
+        isFollowedByMe: (existingValue) => {
+          return { ...existingValue, value: true };
+        }
+      },
+      id: cache.identify(profile.operations)
+    });
+  };
 
   const onCompleted = (__typename?: 'RelayError' | 'RelaySuccess') => {
     if (__typename === 'RelayError') {
       return;
     }
 
+    updateCache();
     setIsLoading(false);
-    setFollowing(true);
     setShowFollowModal(false);
     toast.success('Followed successfully!');
     Leafwatch.track(PROFILE.SUPER_FOLLOW, {
       path: pathname,
-      ...(superFollowPosition && { position: superFollowPosition }),
-      ...(superFollowSource && { source: superFollowSource }),
       target: profile?.id
     });
   };
@@ -93,24 +101,32 @@ const FollowModule: FC<FollowModuleProps> = ({
     errorToast(error);
   };
 
-  const { signTypedDataAsync } = useSignTypedData({ onError });
-  const { write } = useContractWrite({
-    address: LENSHUB_PROXY,
-    abi: LensHub,
-    functionName: 'follow',
-    onSuccess: () => {
-      onCompleted();
-      setLensHubOnchainSigNonce(lensHubOnchainSigNonce + 1);
-    },
-    onError: (error) => {
-      onError(error);
-      setLensHubOnchainSigNonce(lensHubOnchainSigNonce - 1);
+  const { signTypedDataAsync } = useSignTypedData({ mutation: { onError } });
+  const { writeContractAsync } = useWriteContract({
+    mutation: {
+      onError: (error) => {
+        onError(error);
+        setLensHubOnchainSigNonce(lensHubOnchainSigNonce - 1);
+      },
+      onSuccess: () => {
+        onCompleted();
+        setLensHubOnchainSigNonce(lensHubOnchainSigNonce + 1);
+      }
     }
   });
 
+  const write = async ({ args }: { args: any[] }) => {
+    return await writeContractAsync({
+      abi: LensHub,
+      address: LENSHUB_PROXY,
+      args,
+      functionName: 'follow'
+    });
+  };
+
   const { data, loading } = useProfileQuery({
-    variables: { request: { forProfileId: profile?.id } },
-    skip: !profile?.id
+    skip: !profile?.id,
+    variables: { request: { forProfileId: profile?.id } }
   });
 
   const followModule = data?.profile?.followModule as FeeFollowModuleSettings;
@@ -121,6 +137,14 @@ const FollowModule: FC<FollowModuleProps> = ({
 
   const { data: allowanceData, loading: allowanceLoading } =
     useApprovedModuleAllowanceAmountQuery({
+      fetchPolicy: 'no-cache',
+      onCompleted: ({ approvedModuleAllowanceAmount }) => {
+        const allowedAmount = parseFloat(
+          approvedModuleAllowanceAmount[0]?.allowance.value
+        );
+        setAllowed(allowedAmount > amount);
+      },
+      skip: !followModule?.amount?.asset?.contract.address || !currentProfile,
       variables: {
         request: {
           currencies: followModule?.amount?.asset?.contract.address,
@@ -128,25 +152,22 @@ const FollowModule: FC<FollowModuleProps> = ({
           openActionModules: [],
           referenceModules: []
         }
-      },
-      skip: !followModule?.amount?.asset?.contract.address || !currentProfile,
-      onCompleted: ({ approvedModuleAllowanceAmount }) => {
-        const allowedAmount = parseFloat(
-          approvedModuleAllowanceAmount[0]?.allowance.value
-        );
-        setAllowed(allowedAmount > amount);
       }
     });
 
   const { data: balanceData } = useBalance({
     address: currentProfile?.ownedBy.address,
-    token: followModule?.amount?.asset?.contract.address,
-    formatUnits: followModule?.amount?.asset?.decimals,
-    watch: true
+    query: { refetchInterval: 2000 },
+    token: followModule?.amount?.asset?.contract.address
   });
   let hasAmount = false;
 
-  if (balanceData && parseFloat(balanceData?.formatted) < amount) {
+  if (
+    balanceData &&
+    parseFloat(
+      formatUnits(balanceData.value, followModule?.amount?.asset?.decimals)
+    ) < amount
+  ) {
     hasAmount = false;
   } else {
     hasAmount = true;
@@ -159,12 +180,11 @@ const FollowModule: FC<FollowModuleProps> = ({
   const [createFollowTypedData] = useCreateFollowTypedDataMutation({
     onCompleted: async ({ createFollowTypedData }) => {
       const { id, typedData } = createFollowTypedData;
-      const signature = await signTypedDataAsync(getSignature(typedData));
       const {
+        datas,
         followerProfileId,
-        idsOfProfilesToFollow,
         followTokenIds,
-        datas
+        idsOfProfilesToFollow
       } = typedData.value;
       const args = [
         followerProfileId,
@@ -172,18 +192,21 @@ const FollowModule: FC<FollowModuleProps> = ({
         followTokenIds,
         datas
       ];
+      await handleWrongNetwork();
 
       if (canBroadcast) {
+        const signature = await signTypedDataAsync(getSignature(typedData));
         const { data } = await broadcastOnchain({
           variables: { request: { id, signature } }
         });
         if (data?.broadcastOnchain.__typename === 'RelayError') {
-          return write({ args });
+          return await write({ args });
         }
+
         return;
       }
 
-      return write({ args });
+      return await write({ args });
     },
     onError
   });
@@ -193,8 +216,8 @@ const FollowModule: FC<FollowModuleProps> = ({
       return toast.error(Errors.SignWallet);
     }
 
-    if (handleWrongNetwork()) {
-      return;
+    if (isSuspended) {
+      return toast.error(Errors.Suspended);
     }
 
     try {
@@ -205,7 +228,6 @@ const FollowModule: FC<FollowModuleProps> = ({
           request: {
             follow: [
               {
-                profileId: profile?.id,
                 followModule: {
                   feeFollowModule: {
                     amount: {
@@ -213,7 +235,8 @@ const FollowModule: FC<FollowModuleProps> = ({
                       value: followModule?.amount?.value
                     }
                   }
-                }
+                },
+                profileId: profile?.id
               }
             ]
           }
@@ -241,12 +264,12 @@ const FollowModule: FC<FollowModuleProps> = ({
       </div>
       <div className="flex items-center space-x-1.5 py-2">
         <img
-          className="h-7 w-7"
-          height={28}
-          width={28}
-          src={getTokenImage(currency)}
           alt={currency}
+          className="size-7"
+          height={28}
+          src={getTokenImage(currency)}
           title={assetName}
+          width={28}
         />
         <span className="space-x-1">
           <span className="text-2xl font-bold">{amount}</span>
@@ -254,20 +277,20 @@ const FollowModule: FC<FollowModuleProps> = ({
         </span>
       </div>
       <div className="flex items-center space-x-2">
-        <UserIcon className="ld-text-gray-500 h-4 w-4" />
+        <UserIcon className="ld-text-gray-500 size-4" />
         <div className="space-x-1.5">
           <span>Recipient:</span>
           <Link
-            href={`${POLYGONSCAN_URL}/address/${followModule?.recipient}`}
-            target="_blank"
             className="font-bold text-gray-600"
+            href={`${POLYGONSCAN_URL}/address/${followModule?.recipient}`}
             rel="noreferrer noopener"
+            target="_blank"
           >
             {formatAddress(followModule?.recipient)}
           </Link>
         </div>
       </div>
-      <div className="space-y-2 pt-5">
+      <div className="mt-5 space-y-2">
         <div className="text-lg font-bold">Perks you get</div>
         <ul className="ld-text-gray-500 space-y-1 text-sm">
           <li className="flex space-x-2 leading-6 tracking-normal">
@@ -310,16 +333,16 @@ const FollowModule: FC<FollowModuleProps> = ({
           hasAmount ? (
             <Button
               className="mt-5 !px-3 !py-1.5 text-sm"
-              outline
-              onClick={createFollow}
               disabled={isLoading}
               icon={
                 isLoading ? (
                   <Spinner size="xs" />
                 ) : (
-                  <StarIcon className="h-4 w-4" />
+                  <StarIcon className="size-4" />
                 )
               }
+              onClick={createFollow}
+              outline
             >
               {again ? 'Super follow again' : 'Super follow now'}
             </Button>
@@ -332,13 +355,13 @@ const FollowModule: FC<FollowModuleProps> = ({
         ) : (
           <div className="mt-5">
             <AllowanceButton
-              title="Allow follow module"
+              allowed={allowed}
               module={
                 allowanceData
                   ?.approvedModuleAllowanceAmount[0] as ApprovedAllowanceAmountResult
               }
-              allowed={allowed}
               setAllowed={setAllowed}
+              title="Allow follow module"
             />
           </div>
         )

@@ -1,6 +1,13 @@
+import imageCompression from 'browser-image-compression';
+
 import { uploadFileToIPFS } from './uploadToIPFS';
 
-export function readFile(file: Blob): Promise<string> {
+/**
+ * Read a file as a base64 string
+ * @param file File
+ * @returns Base64 string
+ */
+export const readFile = (file: Blob): Promise<string> => {
   return new Promise((resolve) => {
     const reader = new FileReader();
     reader.addEventListener(
@@ -10,8 +17,13 @@ export function readFile(file: Blob): Promise<string> {
     );
     reader.readAsDataURL(file);
   });
-}
+};
 
+/**
+ * Upload cropped image to IPFS
+ * @param image Image
+ * @returns IPFS URL
+ */
 const uploadCroppedImage = async (
   image: HTMLCanvasElement
 ): Promise<string> => {
@@ -19,7 +31,13 @@ const uploadCroppedImage = async (
   const file = new File([blob as Blob], 'cropped_image.png', {
     type: (blob as Blob).type
   });
-  const attachment = await uploadFileToIPFS(file);
+  const cleanedFile = await imageCompression(file, {
+    exifOrientation: 1,
+    maxSizeMB: 1,
+    maxWidthOrHeight: 2048,
+    useWebWorker: true
+  });
+  const attachment = await uploadFileToIPFS(cleanedFile);
   const ipfsUrl = attachment.uri;
   if (!ipfsUrl) {
     throw new Error('uploadToIPFS failed');

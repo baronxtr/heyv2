@@ -18,15 +18,15 @@ export const Leafwatch = {
     const referrerDomain = referrer ? new URL(referrer).hostname : null;
 
     worker.postMessage({
-      name,
-      properties,
       actor: sessionProfileId,
+      name,
+      platform: 'web',
+      properties,
       referrer: referrerDomain,
-      url: window.location.href,
-      platform: 'web'
+      url: window.location.href
     });
 
-    worker.onmessage = function (event: MessageEvent) {
+    worker.onmessage = (event: MessageEvent) => {
       const response = event.data;
       const xhr = new XMLHttpRequest();
       xhr.open('POST', `${HEY_API_URL}/leafwatch/events`);

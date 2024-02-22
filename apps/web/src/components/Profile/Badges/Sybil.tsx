@@ -1,15 +1,16 @@
+import type { ProfileOnchainIdentity } from '@hey/lens';
+import type { FC } from 'react';
+
 import { CheckCircleIcon } from '@heroicons/react/24/solid';
 import { STATIC_IMAGES_URL } from '@hey/data/constants';
-import type { Profile } from '@hey/lens';
 import { Tooltip } from '@hey/ui';
-import { type FC } from 'react';
 
 interface SybilProps {
-  profile: Profile;
+  onchainIdentity: ProfileOnchainIdentity;
 }
 
-const Sybil: FC<SybilProps> = ({ profile }) => {
-  if (!profile?.onchainIdentity?.sybilDotOrg?.verified) {
+const Sybil: FC<SybilProps> = ({ onchainIdentity }) => {
+  if (!onchainIdentity?.sybilDotOrg?.verified) {
     return null;
   }
 
@@ -19,24 +20,21 @@ const Sybil: FC<SybilProps> = ({ profile }) => {
         <span>
           <span className="flex items-center space-x-1">
             <span>Sybil verified</span>
-            <CheckCircleIcon className="h-4 w-4" />
+            <CheckCircleIcon className="size-4" />
           </span>
           <span>
-            X:{' '}
-            <b>
-              @{profile?.onchainIdentity?.sybilDotOrg?.source?.twitter?.handle}
-            </b>
+            X: <b>@{onchainIdentity?.sybilDotOrg?.source?.twitter?.handle}</b>
           </span>
         </span>
       }
       placement="top"
     >
       <img
+        alt="Sybil Badge"
         className="drop-shadow-xl"
         height={75}
-        width={75}
         src={`${STATIC_IMAGES_URL}/badges/sybil.png`}
-        alt="Sybil Badge"
+        width={75}
       />
     </Tooltip>
   );

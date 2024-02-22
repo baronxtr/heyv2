@@ -1,7 +1,8 @@
+import type { ReactionEvent } from '@hey/lens';
+import type { FC } from 'react';
+
 import Profiles from '@components/Shared/Profiles';
 import { HeartIcon } from '@heroicons/react/24/outline';
-import type { ReactionEvent } from '@hey/lens';
-import { type FC } from 'react';
 
 interface LikedProps {
   reactions: ReactionEvent[];
@@ -18,13 +19,9 @@ const Liked: FC<LikedProps> = ({ reactions }) => {
   };
 
   return (
-    <div
-      className={
-        'ld-text-gray-500 flex items-center space-x-1 pb-4 text-[13px]'
-      }
-    >
-      <HeartIcon className="h-4 w-4" />
-      <Profiles profiles={getLikedProfiles()} context="liked" />
+    <div className="ld-text-gray-500 mb-3 flex items-center space-x-1 text-[13px]">
+      <HeartIcon className="size-4" />
+      <Profiles context="liked" profiles={getLikedProfiles()} />
     </div>
   );
 };

@@ -1,11 +1,13 @@
+import type { Profile } from '@hey/lens';
+import type { FC } from 'react';
+
 import { UsersIcon } from '@heroicons/react/24/outline';
 import { PROFILE } from '@hey/data/tracking';
-import type { Profile } from '@hey/lens';
+import getProfile from '@hey/lib/getProfile';
 import humanize from '@hey/lib/humanize';
 import { Modal } from '@hey/ui';
 import { Leafwatch } from '@lib/leafwatch';
 import plur from 'plur';
-import type { FC } from 'react';
 import { useState } from 'react';
 
 import Followers from './Followers';
@@ -22,7 +24,6 @@ const Followerings: FC<FolloweringsProps> = ({ profile }) => {
   return (
     <div className="flex gap-8">
       <button
-        type="button"
         className="text-left"
         onClick={() => {
           setShowFollowingModal(!showFollowingModal);
@@ -30,6 +31,7 @@ const Followerings: FC<FolloweringsProps> = ({ profile }) => {
             profile_id: profile.id
           });
         }}
+        type="button"
       >
         <div className="text-xl">{humanize(profile.stats.following)}</div>
         <div className="ld-text-gray-500">
@@ -37,7 +39,6 @@ const Followerings: FC<FolloweringsProps> = ({ profile }) => {
         </div>
       </button>
       <button
-        type="button"
         className="text-left"
         onClick={() => {
           setShowFollowersModal(!showFollowersModal);
@@ -45,6 +46,7 @@ const Followerings: FC<FolloweringsProps> = ({ profile }) => {
             profile_id: profile.id
           });
         }}
+        type="button"
       >
         <div className="text-xl">{humanize(profile.stats.followers)}</div>
         <div className="ld-text-gray-500">
@@ -52,20 +54,26 @@ const Followerings: FC<FolloweringsProps> = ({ profile }) => {
         </div>
       </button>
       <Modal
-        title="Following"
-        icon={<UsersIcon className="text-brand-500 h-5 w-5" />}
-        show={showFollowingModal}
+        icon={<UsersIcon className="text-brand-500 size-5" />}
         onClose={() => setShowFollowingModal(false)}
+        show={showFollowingModal}
+        title="Following"
       >
-        <Following profile={profile} />
+        <Following
+          handle={getProfile(profile).slugWithPrefix}
+          profileId={profile.id}
+        />
       </Modal>
       <Modal
-        title="Followers"
-        icon={<UsersIcon className="text-brand-500 h-5 w-5" />}
-        show={showFollowersModal}
+        icon={<UsersIcon className="text-brand-500 size-5" />}
         onClose={() => setShowFollowersModal(false)}
+        show={showFollowersModal}
+        title="Followers"
       >
-        <Followers profile={profile} />
+        <Followers
+          handle={getProfile(profile).slugWithPrefix}
+          profileId={profile.id}
+        />
       </Modal>
     </div>
   );

@@ -1,8 +1,9 @@
+import type { FC } from 'react';
+
 import ToggleWithHelper from '@components/Shared/ToggleWithHelper';
 import { StarIcon } from '@heroicons/react/24/outline';
 import { Input } from '@hey/ui';
-import { type FC } from 'react';
-import { useCollectModuleStore } from 'src/store/non-persisted/useCollectModuleStore';
+import { useCollectModuleStore } from 'src/store/non-persisted/publication/useCollectModuleStore';
 
 interface CollectLimitConfigProps {
   setCollectType: (data: any) => void;
@@ -14,32 +15,32 @@ const CollectLimitConfig: FC<CollectLimitConfigProps> = ({
   const collectModule = useCollectModuleStore((state) => state.collectModule);
 
   return (
-    <div className="pt-5">
+    <div className="mt-5">
       <ToggleWithHelper
+        description="Make collects limited edition"
+        heading="Exclusive content"
+        icon={<StarIcon className="size-5" />}
         on={Boolean(collectModule.collectLimit)}
         setOn={() =>
           setCollectType({
             collectLimit: collectModule.collectLimit ? null : '1'
           })
         }
-        heading="Limited edition"
-        description="Make the collects exclusive"
-        icon={<StarIcon className="h-4 w-4" />}
       />
       {collectModule.collectLimit ? (
-        <div className="pt-4 text-sm">
+        <div className="ml-8 mt-4 text-sm">
           <Input
             label="Collect limit"
-            type="number"
-            placeholder="5"
-            min="1"
             max="100000"
-            value={collectModule.collectLimit}
+            min="1"
             onChange={(event) => {
               setCollectType({
                 collectLimit: event.target.value ? event.target.value : '1'
               });
             }}
+            placeholder="5"
+            type="number"
+            value={collectModule.collectLimit}
           />
         </div>
       ) : null}

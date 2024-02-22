@@ -1,11 +1,12 @@
+import type { Profile } from '@hey/lens';
+import type { FC } from 'react';
+
 import { StarIcon } from '@heroicons/react/24/outline';
 import { PROFILE } from '@hey/data/tracking';
-import type { Profile } from '@hey/lens';
 import getProfile from '@hey/lib/getProfile';
 import { Button, Modal } from '@hey/ui';
 import { Leafwatch } from '@lib/leafwatch';
 import dynamic from 'next/dynamic';
-import type { FC } from 'react';
 import { useState } from 'react';
 import { useGlobalModalStateStore } from 'src/store/non-persisted/useGlobalModalStateStore';
 import useProfileStore from 'src/store/persisted/useProfileStore';
@@ -18,23 +19,15 @@ const FollowModule = dynamic(() => import('./FollowModule'), {
 });
 
 interface SuperFollowProps {
-  profile: Profile;
-  setFollowing: (following: boolean) => void;
-  showText?: boolean;
   again?: boolean;
-
-  // For data analytics
-  superFollowPosition?: number;
-  superFollowSource?: string;
+  profile: Profile;
+  showText?: boolean;
 }
 
 const SuperFollow: FC<SuperFollowProps> = ({
-  profile,
-  setFollowing,
-  showText = false,
   again = false,
-  superFollowPosition,
-  superFollowSource
+  profile,
+  showText = false
 }) => {
   const [showFollowModal, setShowFollowModal] = useState(false);
   const currentProfile = useProfileStore((state) => state.currentProfile);
@@ -45,8 +38,9 @@ const SuperFollow: FC<SuperFollowProps> = ({
   return (
     <>
       <Button
+        aria-label="Super follow"
         className="!px-3 !py-1.5 text-sm"
-        outline
+        icon={<StarIcon className="size-4" />}
         onClick={() => {
           if (!currentProfile) {
             setShowAuthModal(true);
@@ -55,29 +49,25 @@ const SuperFollow: FC<SuperFollowProps> = ({
           setShowFollowModal(!showFollowModal);
           Leafwatch.track(PROFILE.OPEN_SUPER_FOLLOW);
         }}
-        aria-label="Super follow"
-        icon={<StarIcon className="h-4 w-4" />}
+        outline
       >
         {showText ? 'Super follow' : null}
       </Button>
       <Modal
+        icon={<StarIcon className="size-5 text-pink-500" />}
+        onClose={() => setShowFollowModal(false)}
+        show={showFollowModal}
         title={
           <span>
             Super follow <Slug slug={getProfile(profile).slugWithPrefix} />{' '}
             {again ? 'again' : ''}
           </span>
         }
-        icon={<StarIcon className="h-5 w-5 text-pink-500" />}
-        show={showFollowModal}
-        onClose={() => setShowFollowModal(false)}
       >
         <FollowModule
-          profile={profile}
-          setFollowing={setFollowing}
-          setShowFollowModal={setShowFollowModal}
           again={again}
-          superFollowPosition={superFollowPosition}
-          superFollowSource={superFollowSource}
+          profile={profile}
+          setShowFollowModal={setShowFollowModal}
         />
       </Modal>
     </>

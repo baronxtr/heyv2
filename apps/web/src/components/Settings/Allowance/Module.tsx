@@ -1,9 +1,14 @@
+import type { FC } from 'react';
+
 import { POLYGONSCAN_URL } from '@hey/data/constants';
-import type { ApprovedAllowanceAmountResult } from '@hey/lens';
+import {
+  type ApprovedAllowanceAmountResult,
+  OpenActionModuleType
+} from '@hey/lens';
 import { Card } from '@hey/ui';
 import getAllowanceModule from '@lib/getAllowanceModule';
+import getAllowanceOpenAction from '@lib/getAllowanceOpenAction';
 import Link from 'next/link';
-import type { FC } from 'react';
 import { useState } from 'react';
 
 import AllowanceButton from './Button';
@@ -19,26 +24,28 @@ const Module: FC<ModuleProps> = ({ module }) => {
 
   return (
     <Card
-      key={module?.moduleName}
       className="block items-center justify-between p-5 sm:flex"
       forceRounded
+      key={module?.moduleName}
     >
       <div className="mb-3 mr-1.5 overflow-hidden sm:mb-0">
         <div className="whitespace-nowrap font-bold">
-          {getAllowanceModule(module?.moduleName).name}
+          {module.moduleName === OpenActionModuleType.UnknownOpenActionModule
+            ? getAllowanceOpenAction(module?.moduleContract.address).name
+            : getAllowanceModule(module?.moduleName).name}
         </div>
         <Link
-          href={`${POLYGONSCAN_URL}/address/${module?.moduleContract.address}`}
           className="ld-text-gray-500 truncate text-sm"
-          target="_blank"
+          href={`${POLYGONSCAN_URL}/address/${module?.moduleContract.address}`}
           rel="noreferrer noopener"
+          target="_blank"
         >
           {module?.moduleContract.address}
         </Link>
       </div>
       <AllowanceButton
-        module={module}
         allowed={allowed}
+        module={module}
         setAllowed={setAllowed}
       />
     </Card>

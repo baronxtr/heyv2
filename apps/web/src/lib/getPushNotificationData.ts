@@ -1,12 +1,17 @@
 import type { Notification } from '@hey/lens';
 
+/**
+ * Get push notification data
+ * @param notification Notification
+ * @returns Push notification data
+ */
 const getPushNotificationData = (
   notification: Notification
 ): {
   title: string;
 } | null => {
   switch (notification?.__typename) {
-    case 'ActedNotification':
+    case 'ActedNotification': {
       const actedProfile = notification.actions[0].by;
       const actedHandle =
         actedProfile.handle?.suggestedFormatted.localName || actedProfile.id;
@@ -15,7 +20,8 @@ const getPushNotificationData = (
       return {
         title: `${actedHandle} acted on your ${actedType}`
       };
-    case 'CommentNotification':
+    }
+    case 'CommentNotification': {
       const commentedProfile = notification.comment.by;
       const commentedHandle =
         commentedProfile.handle?.suggestedFormatted.localName ||
@@ -26,7 +32,8 @@ const getPushNotificationData = (
       return {
         title: `${commentedHandle} commented on your ${commentedType}`
       };
-    case 'MirrorNotification':
+    }
+    case 'MirrorNotification': {
       const mirroredProfile = notification.mirrors[0].profile;
       const mirroredHandle =
         mirroredProfile.handle?.suggestedFormatted.localName ||
@@ -36,7 +43,8 @@ const getPushNotificationData = (
       return {
         title: `${mirroredHandle} mirrored your ${mirroredType}`
       };
-    case 'MentionNotification':
+    }
+    case 'MentionNotification': {
       const mentionedProfile = notification.publication.by;
       const mentionedHandle =
         mentionedProfile.handle?.suggestedFormatted.localName ||
@@ -46,7 +54,8 @@ const getPushNotificationData = (
       return {
         title: `${mentionedHandle} mentioned your on a ${mentionedType}`
       };
-    case 'QuoteNotification':
+    }
+    case 'QuoteNotification': {
       const quotedProfile = notification.quote.by;
       const quotedHandle =
         quotedProfile.handle?.suggestedFormatted.localName || quotedProfile.id;
@@ -55,7 +64,8 @@ const getPushNotificationData = (
       return {
         title: `${quotedHandle} quoted your ${quotedType}`
       };
-    case 'ReactionNotification':
+    }
+    case 'ReactionNotification': {
       const reactedProfile = notification.reactions[0].profile;
       const reactedHandle =
         reactedProfile.handle?.suggestedFormatted.localName ||
@@ -65,7 +75,8 @@ const getPushNotificationData = (
       return {
         title: `${reactedHandle} liked your ${reactedType}`
       };
-    case 'FollowNotification':
+    }
+    case 'FollowNotification': {
       const followedProfile = notification.followers[0];
       const followedHandle =
         followedProfile.handle?.suggestedFormatted.localName ||
@@ -74,6 +85,7 @@ const getPushNotificationData = (
       return {
         title: `${followedHandle} followed you`
       };
+    }
     default:
       return null;
   }
